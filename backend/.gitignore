@@ -1,0 +1,81 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Flask ---
+instance/
+.webassets-cache
+
+# --- Virtual Environments ---
+# It is recommended to create your virtual environment in one of these directories
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Environment Variables & Secrets ---
+# IMPORTANT: Never commit .env files containing API keys or passwords
+.env
+.env.local
+
+# Note: .flaskenv is usually safe to commit if it contains only
+# configuration defaults, but exclude it if you store secrets there.
+# .flaskenv
+
+# --- Unit Tests / Coverage ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# --- Type Checkers ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# --- IDE / Editor / OS ---
+# VS Code
+.vscode/
+
+# JetBrains (PyCharm)
+.idea/
+
+# Mac
+.DS_Store
+
+# Jupyter Notebooks (if applicable)
+.ipynb_checkpoints

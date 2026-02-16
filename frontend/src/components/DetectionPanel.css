@@ -1,0 +1,91 @@
+/* DetectionPanel styles */
+
+.det-status-badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.det-status-badge.available {
+  background: rgba(46,204,113,0.1);
+  color: #2ecc71;
+}
+.det-status-badge.unavailable {
+  background: rgba(231,76,60,0.1);
+  color: #e74c3c;
+}
+
+.det-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.det-classes-row {
+  display: flex;
+  gap: 6px;
+}
+.det-classes-input {
+  flex: 1;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.det-classes-input:focus {
+  border-color: var(--accent);
+}
+.det-apply-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.det-apply-btn:hover { filter: brightness(1.15); }
+
+.det-results {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.det-results-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.det-result-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+.det-class-name {
+  color: var(--text-muted);
+}
+.det-class-count {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.det-no-results {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+}

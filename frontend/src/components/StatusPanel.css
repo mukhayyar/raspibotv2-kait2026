@@ -1,0 +1,59 @@
+.direction-display {
+  text-align: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+.dir-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
+.dir-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dir-value.stopped { color: var(--text-muted); }
+
+.status-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.status-table td {
+  padding: 4px 0;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.status-table td:first-child { color: var(--text-muted); }
+.status-table td:last-child {
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.motors-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.motor-indicator {
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 6px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s;
+}
+.motor-indicator.running {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.motor-name { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+.motor-speed-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.motor-dir { font-size: 0.65rem; color: var(--text-muted); }

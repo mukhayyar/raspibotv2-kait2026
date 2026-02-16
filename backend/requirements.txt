@@ -1,0 +1,13 @@
+flask
+flask-cors
+flask-socketio
+simple-websocket
+python-dotenv
+gunicorn
+eventlet
+opencv-python-headless
+numpy
+smbus2
+ultralytics
+onnxruntime
+git+https://github.com/ultralytics/CLIP.git

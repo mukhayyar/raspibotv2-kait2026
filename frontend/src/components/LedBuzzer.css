@@ -1,0 +1,91 @@
+.led-section { margin-bottom: 12px; }
+.led-colors {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.led-color-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.led-color-btn.active { border-color: #fff; box-shadow: 0 0 10px currentColor; transform: scale(1.15); }
+.color-0 { background: #e74c3c; }
+.color-1 { background: #2ecc71; }
+.color-2 { background: #3498db; }
+.color-3 { background: #f1c40f; }
+.color-4 { background: #9b59b6; }
+.color-5 { background: #1abc9c; }
+.color-6 { background: #ecf0f1; }
+
+.led-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.action-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.action-btn.primary:hover { filter: brightness(1.15); }
+.action-btn.danger {
+  background: rgba(231,76,60,0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231,76,60,0.3);
+}
+.action-btn.danger:hover {
+  background: rgba(231,76,60,0.3);
+}
+.stop-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.toggle-row label { font-size: 0.85rem; color: var(--text-muted); }
+.toggle-row kbd {
+  font-size: 0.6rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 3px;
+  padding: 0 4px;
+  color: var(--text-muted);
+}
+.toggle { position: relative; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+.toggle input:checked + .toggle-slider::after { transform: translateX(20px); }

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PENS-KAIT 2026 — Robot Control</title>
+    <meta name="description" content="Web dashboard for controlling the Yahboom Raspbot — PENS-KAIT 2026 Project">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+
+<body>
+
+    <!-- ─── Header ─────────────────────────────────────────────────── -->
+    <header class="header">
+        <div class="header-title">
+            <span class="logo">🤖</span>
+            <h1>PENS-KAIT 2026 — Robot Control</h1>
+        </div>
+        <div class="keyboard-hint">
+            <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move&ensp;
+            <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> Servo&ensp;
+            <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Speed&ensp;
+            <kbd>B</kbd> Buzzer&ensp;
+            <kbd>Space</kbd> Stop
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <!-- Unlock Button -->
+            <div id="auth-container" style="position:relative;">
+                <button id="auth-toggle-btn" onclick="toggleAuthForm()" class="auth-btn locked">
+                    🔒 <span id="auth-btn-text">Unlock</span>
+                </button>
+                <div id="auth-dropdown" class="auth-dropdown hidden">
+                    <input type="password" id="auth-password" placeholder="Admin password"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAuth();}">
+                    <button onclick="submitAuth()" class="auth-go-btn">→</button>
+                    <div id="auth-feedback" class="auth-feedback"></div>
+                </div>
+            </div>
+            <div id="status-badge" class="status-badge">
+                <span class="status-dot"></span>
+                <span class="status-text">Connected</span>
+            </div>
+        </div>
+    </header>
+    <style>
+        .auth-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .auth-btn.locked {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef5350;
+        }
+
+        .auth-btn.unlocked {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+            cursor: default;
+        }
+
+        .auth-btn.locked:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .auth-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 200;
+            background: rgba(17, 24, 39, 0.97);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-width: 240px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+        }
+
+        .auth-dropdown.hidden {
+            display: none;
+        }
+
+        .auth-dropdown input {
+            flex: 1;
+            padding: 7px 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.8rem;
+            outline: none;
+            min-width: 0;
+        }
+
+        .auth-dropdown input:focus {
+            border-color: #667eea;
+        }
+
+        .auth-go-btn {
+            padding: 7px 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .auth-feedback {
+            width: 100%;
+            font-size: 0.7rem;
+            min-height: 16px;
+        }
+
+        .auth-feedback.error {
+            color: #ef5350;
+        }
+
+        .auth-feedback.success {
+            color: #10b981;
+        }
+    </style>
+
+
+    <!-- ─── Dashboard ──────────────────────────────────────────────── -->
+    <main class="dashboard">
+
+        <!-- ═══ Camera Feed ═══ -->
+        <section class="card camera-section">
+            <div class="card-title"><span class="icon">📷</span> Camera Feed</div>
+            <img class="camera-feed" src="/video_feed" alt="Camera Feed"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="camera-feed-placeholder" style="display:none;">
+                📷 Camera unavailable
+            </div>
+        </section>
+
+        <!-- ═══ Right Sidebar ═══ -->
+        <aside class="sidebar">
+
+            <!-- Robot Status -->
+            <div class="card">
+                <div class="card-title"><span class="icon">📊</span> Robot Status</div>
+                <div class="direction-display">
+                    <div class="dir-label">Direction</div>
+                    <div id="status-direction" class="dir-value stopped">STOPPED</div>
+                </div>
+                <table class="status-table">
+                    <tr>
+                        <td>Speed</td>
+                        <td id="status-speed">40</td>
+                    </tr>
+                    <tr>
+                        <td>Servo H (Pan)</td>
+                        <td id="status-servo-h">90°</td>
+                    </tr>
+                    <tr>
+                        <td>Servo V (Tilt)</td>
+                        <td id="status-servo-v">90°</td>
+                    </tr>
+                    <tr>
+                        <td>LED</td>
+                        <td id="status-led">off</td>
+                    </tr>
+                    <tr>
+                        <td>Buzzer</td>
+                        <td id="status-buzzer">OFF</td>
+                    </tr>
+                </table>
+                <div class="motors-grid">
+                    <div class="motor-indicator" id="motor-L1">
+                        <div class="motor-name">L1</div>
+                        <div class="motor-speed-val">0</div>
+                        <div class="motor-dir">---</div>
+                    </div>
+                    <div class="motor-indicator" id="motor-R1">
+                        <div class="motor-name">R1</div>
+                        <div class="motor-speed-val">0</div>
+                        <div class="motor-dir">---</div>
+                    </div>
+                    <div class="motor-indicator" id="motor-L2">
+                        <div class="motor-name">L2</div>
+                        <div class="motor-speed-val">0</div>
+                        <div class="motor-dir">---</div>
+                    </div>
+                    <div class="motor-indicator" id="motor-R2">
+                        <div class="motor-name">R2</div>
+                        <div class="motor-speed-val">0</div>
+                        <div class="motor-dir">---</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensors -->
+            <div class="card">
+                <div class="card-title"><span class="icon">📡</span> Sensor Data</div>
+                <div class="sensor-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-icon">📏</div>
+                        <div class="sensor-label">Ultrasonic</div>
+                        <div id="sensor-distance" class="sensor-value">---</div>
+                        <div class="sensor-unit">mm</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-icon">📡</div>
+                        <div class="sensor-label">IR Remote</div>
+                        <div id="sensor-ir" class="sensor-value">---</div>
+                        <div class="sensor-unit">value</div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <div class="sensor-label" style="text-align:center; margin-bottom:6px;">Line Tracking</div>
+                    <div class="line-track-viz">
+                        <div class="track-sensor" id="track-x1">1</div>
+                        <div class="track-sensor" id="track-x2">2</div>
+                        <div class="track-sensor" id="track-x3">3</div>
+                        <div class="track-sensor" id="track-x4">4</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YOLO Detection -->
+            <div class="card" id="detection-panel">
+                <div class="card-title"><span class="icon">🔍</span> YOLO Detection</div>
+                <div class="toggle-row" style="margin-bottom: 10px;">
+                    <label>Enable Detection</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="detection-toggle" onchange="toggleDetection(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Confidence</span>
+                        <span id="det-conf-val" class="slider-value">0.35</span>
+                    </div>
+                    <input type="range" id="det-conf-slider" min="5" max="100" value="35"
+                        oninput="onConfidenceChange(this)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Classes</span></div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="text" id="det-classes" value="person, car, dog, cat, bottle"
+                            placeholder="person, car, dog..."
+                            style="flex:1; padding:6px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:var(--text); font-size:0.8rem;"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault(); applyClasses();}">
+                        <button onclick="applyClasses()"
+                            style="padding:6px 14px; background:linear-gradient(135deg,#667eea,#764ba2); border:none; border-radius:6px; color:#fff; font-size:0.75rem; cursor:pointer; white-space:nowrap;">Apply</button>
+                    </div>
+                    <div id="det-class-feedback" style="margin-top:4px; font-size:0.7rem;"></div>
+                </div>
+                <div id="det-results" style="margin-top:8px; font-size:0.75rem; color:var(--text-muted);"></div>
+                <div id="det-status" style="margin-top:4px; font-size:0.7rem; color:var(--text-muted);"></div>
+            </div>
+
+            <!-- Keyboard Guide -->
+            <div class="card">
+                <div class="card-title"><span class="icon">⌨️</span> Keyboard Active</div>
+                <div class="key-grid">
+                    <div class="key-cell empty"></div>
+                    <div class="key-cell" id="key-w">W</div>
+                    <div class="key-cell empty"></div>
+                    <div class="key-cell" id="key-a">A</div>
+                    <div class="key-cell" id="key-s">S</div>
+                    <div class="key-cell" id="key-d">D</div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- ═══ Bottom Controls Row ═══ -->
+        <div class="controls-row">
+
+            <!-- D-Pad -->
+            <div class="card">
+                <div class="card-title"><span class="icon">🕹️</span> Movement</div>
+                <div class="dpad-container">
+                    <div class="dpad">
+                        <button class="dpad-btn" data-dir="forward_left" title="Forward Left">↖</button>
+                        <button class="dpad-btn" data-dir="forward" title="Forward (W / ↑)">⬆</button>
+                        <button class="dpad-btn" data-dir="forward_right" title="Forward Right">↗</button>
+
+                        <button class="dpad-btn" data-dir="left" title="Rotate Left (A / ←)">⬅</button>
+                        <button class="dpad-btn" data-dir="stop" title="Stop (Space)">⏹</button>
+                        <button class="dpad-btn" data-dir="right" title="Rotate Right (D / →)">➡</button>
+
+                        <button class="dpad-btn" data-dir="backward_left" title="Back Left">↙</button>
+                        <button class="dpad-btn" data-dir="backward" title="Backward (S / ↓)">⬇</button>
+                        <button class="dpad-btn" data-dir="backward_right" title="Back Right">↘</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Servo + Speed -->
+            <div class="card">
+                <div class="card-title"><span class="icon">🎚️</span> Servo & Speed</div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>🔄 Horizontal Pan <kbd
+                                style="font-size:0.6rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:0 4px; color:var(--text-muted);">J/L</kbd></span>
+                        <span id="servo-h-val" class="slider-value">90°</span>
+                    </div>
+                    <input type="range" id="servo-h" min="0" max="180" value="90" oninput="onServoChange(1, this)">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>↕️ Vertical Tilt <kbd
+                                style="font-size:0.6rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:0 4px; color:var(--text-muted);">I/K</kbd></span>
+                        <span id="servo-v-val" class="slider-value">90°</span>
+                    </div>
+                    <input type="range" id="servo-v" min="0" max="180" value="90" oninput="onServoChange(2, this)">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>⚡ Speed</span>
+                        <span id="speed-val" class="slider-value">40</span>
+                    </div>
+                    <input type="range" id="speed-slider" min="0" max="255" value="40" oninput="onSpeedChange(this)">
+                    <div class="speed-presets">
+                        <button class="preset-btn active" data-speed="40" onclick="setSpeed(40)">Slow</button>
+                        <button class="preset-btn" data-speed="70" onclick="setSpeed(70)">Medium</button>
+                        <button class="preset-btn" data-speed="150" onclick="setSpeed(150)">Fast</button>
+                        <button class="preset-btn" data-speed="255" onclick="setSpeed(255)">Max</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LED + Buzzer -->
+            <div class="card">
+                <div class="card-title"><span class="icon">💡</span> LED & Buzzer</div>
+
+                <div style="margin-bottom: 12px;">
+                    <div class="slider-label" style="margin-bottom:8px;">
+                        <span>LED Color</span>
+                    </div>
+                    <div class="led-colors">
+                        <button class="led-color-btn" data-color="0" onclick="setLedColor(0)" title="Red"></button>
+                        <button class="led-color-btn" data-color="1" onclick="setLedColor(1)" title="Green"></button>
+                        <button class="led-color-btn" data-color="2" onclick="setLedColor(2)" title="Blue"></button>
+                        <button class="led-color-btn" data-color="3" onclick="setLedColor(3)" title="Yellow"></button>
+                        <button class="led-color-btn" data-color="4" onclick="setLedColor(4)" title="Purple"></button>
+                        <button class="led-color-btn" data-color="5" onclick="setLedColor(5)" title="Cyan"></button>
+                        <button class="led-color-btn" data-color="6" onclick="setLedColor(6)" title="White"></button>
+                    </div>
+                    <div class="led-toggle-row">
+                        <button class="action-btn primary"
+                            onclick="setLedColor(document.querySelector('.led-color-btn.active')?.dataset.color || 0)">💡
+                            LED ON</button>
+                        <button class="action-btn danger" onclick="setLedOff()">LED OFF</button>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <label>🔊 Buzzer <kbd
+                            style="font-size:0.6rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:0 4px; color:var(--text-muted);">B</kbd></label>
+                    <label class="toggle">
+                        <input type="checkbox" id="buzzer-toggle" onchange="toggleBuzzer(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button class="action-btn danger" style="width:100%;"
+                        onclick="activeKeys.clear(); highlightKeyGuide(); sendDirection(null);">
+                        🛑 EMERGENCY STOP (Space)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- ═══ Floating Mobile Controls ═══ -->
+    <div id="mobile-controls" class="mobile-controls">
+        <!-- Movement D-Pad (Left Side) -->
+        <div class="fly-pad fly-pad-left">
+            <div class="fly-pad-label">🕹 Move</div>
+            <div class="fly-dpad">
+                <button class="fly-btn" data-fly-move="forward_left">↖</button>
+                <button class="fly-btn" data-fly-move="forward">⬆</button>
+                <button class="fly-btn" data-fly-move="forward_right">↗</button>
+                <button class="fly-btn" data-fly-move="left">⬅</button>
+                <button class="fly-btn fly-stop" data-fly-move="stop">⏹</button>
+                <button class="fly-btn" data-fly-move="right">➡</button>
+                <button class="fly-btn" data-fly-move="backward_left">↙</button>
+                <button class="fly-btn" data-fly-move="backward">⬇</button>
+                <button class="fly-btn" data-fly-move="backward_right">↘</button>
+            </div>
+        </div>
+        <!-- Servo D-Pad (Right Side) -->
+        <div class="fly-pad fly-pad-right">
+            <div class="fly-pad-label">🎯 Servo</div>
+            <div class="fly-dpad fly-dpad-servo">
+                <div class="fly-spacer"></div>
+                <button class="fly-btn" data-fly-servo="up">⬆</button>
+                <div class="fly-spacer"></div>
+                <button class="fly-btn" data-fly-servo="left">⬅</button>
+                <button class="fly-btn fly-center" data-fly-servo="center">⊙</button>
+                <button class="fly-btn" data-fly-servo="right">➡</button>
+                <div class="fly-spacer"></div>
+                <button class="fly-btn" data-fly-servo="down">⬇</button>
+                <div class="fly-spacer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
