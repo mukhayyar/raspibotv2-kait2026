@@ -46,10 +46,12 @@ def _try_init_hardware():
     global car, HARDWARE_AVAILABLE
     try:
         from Raspbot_Lib.Raspbot_Lib import Raspbot
+        print("[DEBUG] Raspbot_Lib imported successfully, initializing...")
         car = Raspbot()
         HARDWARE_AVAILABLE = True
-    except Exception:
-        pass
+        print("[DEBUG] Raspbot() init OK")
+    except Exception as e:
+        print(f"[DEBUG] Hardware init failed: {type(e).__name__}: {e}")
 
 _hw_thread = threading.Thread(target=_try_init_hardware, daemon=True)
 _hw_thread.start()
@@ -106,7 +108,7 @@ except Exception as e:
     print(f"[WARN] YOLO init error: {e}")
 
 if YOLO_AVAILABLE:
-    print(f"[DEBUG] YOLO is available. Model: {yolo_model}")
+    print(f"[DEBUG] YOLO is available. Model type: {type(yolo_model).__name__}")
 else:
     print("[DEBUG] YOLO is NOT available.")
 
@@ -632,21 +634,31 @@ def on_detection_status():
         })
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
-if __name__ == '__main__':
-    if HARDWARE_AVAILABLE:
-        car.Ctrl_Servo(1, 90)
-        car.Ctrl_Servo(2, 90)
-
-    threading.Thread(target=camera_thread, daemon=True).start()
-    threading.Thread(target=sensor_thread, daemon=True).start()
-    threading.Thread(target=status_broadcast_thread, daemon=True).start()
-
+# ─── Startup Logic ────────────────────────────────────────────────────────────
+def start_background_tasks():
     print("=" * 50)
     print("  PENS-KAIT 2026 Robot Control Dashboard")
     print(f"  YOLO detection: {'available' if YOLO_AVAILABLE else 'unavailable'}")
-    print("  Open http://<YOUR_IP>:5000 in a browser")
     print("  Using WebSocket for real-time control")
+    
+    if HARDWARE_AVAILABLE:
+        # Center servos on startup
+        try:
+            car.Ctrl_Servo(1, 90)
+            car.Ctrl_Servo(2, 90)
+        except Exception as e:
+            print(f"[WARN] Servo init failed: {e}")
+
+    # Start background threads
+    threading.Thread(target=camera_thread, daemon=True).start()
+    threading.Thread(target=sensor_thread, daemon=True).start()
+    threading.Thread(target=status_broadcast_thread, daemon=True).start()
     print("=" * 50)
+
+# Run startup tasks when imported (Production/Gunicorn) or run directly
+start_background_tasks()
+
+if __name__ == '__main__':
+    print("  Open http://<YOUR_IP>:5000 in a browser (Development Mode)")
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
 

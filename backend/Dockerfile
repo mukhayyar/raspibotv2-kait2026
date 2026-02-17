@@ -13,23 +13,25 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Force unbuffered stdout/stderr (so logs appear immediately)
+ENV PYTHONUNBUFFERED=1
+
+# Create smbus → smbus2 compatibility shim
+# Raspbot_Lib uses "import smbus" but we have smbus2 (API-compatible)
+RUN python3 -c "import sysconfig; p=sysconfig.get_paths()['purelib']; f=open(p+'/smbus.py','w'); f.write('from smbus2 import SMBus\n'); f.close()" \
+    && python3 -c "import smbus; print('smbus shim OK')"
+
 # Copy application code
 COPY . .
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
-# Raspbot_Lib is mounted at runtime via docker-compose volume
-# The sys.path manipulation in app.py handles the import
-
 # Expose the backend port
 EXPOSE 5000
 
-# Use gunicorn with eventlet for production Socket.IO
-CMD ["gunicorn", \
-     "--worker-class", "eventlet", \
-     "--workers", "1", \
-     "--bind", "0.0.0.0:5000", \
-     "--timeout", "120", \
-     "--log-level", "info", \
-     "app:app"]
+# Use entrypoint to fix device permissions, then start gunicorn
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -7,11 +7,9 @@ services:
       - "5000:5000"
     volumes:
       - backend-data:/app/data                      # persist SQLite access logs
-    devices:
-      - /dev/video0:/dev/video0                     # camera device passthrough
-      - /dev/i2c-1:/dev/i2c-1                       # I2C for motor/servo control
+      - /dev:/dev                                    # pass all devices (camera, I2C, etc.)
     privileged: true                                # required for hardware access
-    restart: unless-stopped
+    restart: always
 
   frontend:
     build: ./frontend
@@ -20,7 +18,7 @@ services:
       - "3000:80"
     depends_on:
       - backend
-    restart: unless-stopped
+    restart: always
 
 volumes:
   backend-data:
