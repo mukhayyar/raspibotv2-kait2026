@@ -79,3 +79,10 @@ dmypy.json
 
 # Jupyter Notebooks (if applicable)
 .ipynb_checkpoints
+
+# Models
+*.pt
+*.onnx
+*.caffemodel
+*.prototxt
+*.tflite

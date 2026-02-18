@@ -336,6 +336,10 @@ socket.on('detection_state', (data) => {
 });
 
 socket.on('detection_results', (results) => {
+    // Only show results if detection is explicitly enabled in this UI
+    const toggle = document.getElementById('detection-toggle');
+    if (!toggle || !toggle.checked) return;
+
     const el = document.getElementById('det-results');
     if (!results || results.length === 0) {
         el.textContent = 'No detections';

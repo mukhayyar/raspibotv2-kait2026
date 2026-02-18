@@ -1,8 +1,20 @@
+# Exclude models (they are mounted via volume)
+models/
+
+# Exclude virtual environments
+.venv/
+venv/
+env/
+
+# Exclude compiled files
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Exclude git
+.git/
+.gitignore
+
+# Exclude env files (often mounted or passed via env_file)
 .env
-data/
-.git
-.venv/
-*.pt
-*.onnx

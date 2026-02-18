@@ -16,6 +16,8 @@ from flask import Flask, render_template, Response, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
+from context_manager import ContextManager
+from models.phase1_model import Phase1Model
 
 # Load environment variables from .env
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -81,7 +83,7 @@ else:
 
 # ──── Model Configuration (EDIT THESE) ────────────────────────────────────────
 _MODEL_FILENAME = 'yolov8s-worldv2.pt'   # ← Change this to switch models
-DEFAULT_CLASSES = ["person", "car", "dog", "cat", "bottle"]
+DEFAULT_CLASSES = ["person", "car", "clock", "bottle", "chair", "book", "cell phone", "scissor", "laptop", "tv", "cup", "remote", "mouse"]
 # ──────────────────────────────────────────────────────────────────────────────
 
 YOLO_AVAILABLE = False
@@ -112,6 +114,15 @@ if YOLO_AVAILABLE:
 else:
     print("[DEBUG] YOLO is NOT available.")
 
+# ─── Phase 1 Model ──────────────────────────────────────────────────────────
+phase1_model = None
+try:
+    phase1_model = Phase1Model(os.path.dirname(os.path.abspath(__file__)))
+    print("[OK] Phase 1 (Places365) initialized.")
+except Exception as e:
+    print(f"[WARN] Phase 1 init failed: {e}")
+
+
 # Detection state
 detection_lock = threading.Lock()
 detection_state = {
@@ -120,6 +131,9 @@ detection_state = {
     "classes": DEFAULT_CLASSES[:],
     "detections": [],  # current frame results
 }
+
+# ─── Context Manager ──────────────────────────────────────────────────────────
+context_mgr = ContextManager()
 
 # ─── Authentication ───────────────────────────────────────────────────────────
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin')
@@ -189,8 +203,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 state_lock = threading.Lock()
 robot_state = {
     "speed": 40,
-    "w_angle": 90,
-    "h_angle": 90,
+    "w_angle": 40,
+    "h_angle": 40,
     "motors": {
         "L1": {"id": 0, "dir": 0, "speed": 0},
         "L2": {"id": 1, "dir": 0, "speed": 0},
@@ -208,12 +222,17 @@ robot_state = {
 }
 
 # ─── Camera Streaming ─────────────────────────────────────────────────────────
-output_frame = None
+output_frame_index = None    # For Index (conditionally annotated)
+output_frame_research = None # For Phase 2 (always annotated)
+output_frame_raw = None      # For Phase 1 (clean)
 frame_lock = threading.Lock()
+
+# State flags
+research_active = False # True if a client is on /research
 
 
 def camera_thread():
-    global output_frame
+    global output_frame_index, output_frame_research, output_frame_raw, research_active
     if not CV2_AVAILABLE:
         return
     try:
@@ -228,21 +247,37 @@ def camera_thread():
             if not ok:
                 time.sleep(0.05)
                 continue
+            
+            frame_count += 1
+            
+            # 1. Capture Raw (Phase 1)
+            raw_copy = frame.copy()
+            with frame_lock:
+                output_frame_raw = raw_copy
 
-            # Run YOLO tracking every 3rd frame when enabled
-            with detection_lock:
-                det_enabled = detection_state["enabled"]
-                det_conf = detection_state["confidence"]
-                # Use stored result buffer if available
-                last_results = detection_state.get("last_results", [])
-                
-            if det_enabled and YOLO_AVAILABLE:
-                # 1. Run inference every N frames
+            # 2. Phase 1 Inference (Global Context)
+            if frame_count % 30 == 0 and phase1_model:
+                try:
+                    scenes = phase1_model.predict(raw_copy)
+                    if scenes:
+                        scene_data = [{'score': round(s, 3), 'label': l} for s, l in scenes]
+                        socketio.emit('phase1_result', scene_data)
+                except Exception as e:
+                    print(f"[ERROR] Phase 1 loop error: {e}")
+
+            # 3. YOLO Detection Logic
+            # Run if Index enabled OR Research active
+            index_enabled = detection_state["enabled"]
+            should_run_yolo = index_enabled or research_active
+            
+            last_results = detection_state.get("last_results", [])
+
+            if should_run_yolo and YOLO_AVAILABLE:
                 if frame_count % 3 == 0:
                     try:
-                        # Use track() for ID assignment + persist=True
+                        conf = detection_state["confidence"]
                         results = yolo_model.track(
-                            frame, conf=det_conf, verbose=False,
+                            frame, conf=conf, verbose=False,
                             persist=True, tracker="bytetrack.yaml",
                             imgsz=320
                         )
@@ -250,56 +285,50 @@ def camera_thread():
                         for r in results:
                             for box in r.boxes:
                                 x1, y1, x2, y2 = box.xyxy[0].tolist()
-                                conf = float(box.conf[0])
+                                conf_val = float(box.conf[0])
                                 cls_id = int(box.cls[0])
-                                # Track ID might be None if no update
                                 track_id = int(box.id[0]) if box.id is not None else -1
-                                cls_name = r.names.get(cls_id, str(cls_id))
+                                names = r.names
+                                if isinstance(names, dict):
+                                    cls_name = names.get(cls_id, str(cls_id))
+                                else:
+                                    cls_name = names[cls_id] if 0 <= cls_id < len(names) else str(cls_id)
                                 
                                 det_list.append({
-                                    "class": cls_name,
-                                    "id": track_id,
-                                    "confidence": round(conf, 2),
+                                    "class": cls_name, "id": track_id,
+                                    "confidence": round(conf_val, 2),
                                     "bbox": [int(x1), int(y1), int(x2), int(y2)],
                                 })
                         
-                        # Update shared state and local buffer
                         with detection_lock:
                             detection_state["detections"] = det_list
                             detection_state["last_results"] = det_list
-                            last_results = det_list # update local reference for drawing
+                            last_results = det_list
                             
-                        # Push updates only on new detection
                         socketio.emit('detection_results', det_list)
                     except Exception as e:
-                        print(f"[ERROR] YOLO error: {e}")
-                
-                # 2. ALWAYS draw the LAST known results (zero-order hold) to stop blinking
-                for d in last_results:
-                    x1, y1, x2, y2 = d['bbox']
-                    cls_name = d['class']
-                    conf = d['confidence']
-                    tid = d.get('id', -1)
-                    
-                    # Determine color: use Track ID for color stability if available
-                    color_idx = tid if tid > -1 else hash(cls_name) % 80
-                    color = _class_color(color_idx)
-                    
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                    
-                    label = f"{cls_name} {tid if tid > -1 else ''} {conf:.0%}"
-                    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                    cv2.rectangle(frame, (x1, y1 - th - 6), (x1 + tw + 4, y1), color, -1)
-                    cv2.putText(frame, label, (x1 + 2, y1 - 4),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+                        print(f"[ERROR] YOLO loop error: {e}")
 
-            frame_count += 1
+            # 4. Draw Overlays
+            # We need two potential output frames
+            
+            # Frame for Research (Always annotated if detection running)
+            frame_res = raw_copy.copy() 
+            if last_results:
+                _draw_results(frame_res, last_results)
+            
+            # Frame for Index (Annotated only if index_enabled)
+            frame_idx = raw_copy.copy()
+            if index_enabled and last_results:
+                _draw_results(frame_idx, last_results)
+
             with frame_lock:
-                output_frame = frame.copy()
+                output_frame_research = frame_res
+                output_frame_index = frame_idx
+                
             time.sleep(0.033)
     except Exception as e:
-        print(f"[WARN] Camera unavailable: {e}")
-
+        print(f"[WARN] Camera thread died: {e}")
 
 def _class_color(cls_id):
     """Return a distinct BGR color for each class index."""
@@ -310,17 +339,53 @@ def _class_color(cls_id):
     ]
     return palette[cls_id % len(palette)]
 
+def _draw_results(img, results):
+    for d in results:
+        x1, y1, x2, y2 = d['bbox']
+        color = _class_color(d.get('id', -1) if d.get('id', -1) > -1 else hash(d['class']) % 80)
+        label = f"{d['class']} {d.get('id','')}"
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(img, label, (x1, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-def generate_frames():
-    global output_frame
+def generate_frames_index():
+    global output_frame_index
+    if not CV2_AVAILABLE: return
+    while True:
+        with frame_lock:
+            if output_frame_index is None:
+                time.sleep(0.05); continue
+            ok, jpeg = cv2.imencode('.jpg', output_frame_index, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            if not ok: continue
+            frame_bytes = jpeg.tobytes()
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        time.sleep(0.033)
+
+def generate_frames_research():
+    global output_frame_research
+    if not CV2_AVAILABLE: return
+    while True:
+        with frame_lock:
+            if output_frame_research is None:
+                time.sleep(0.05); continue
+            ok, jpeg = cv2.imencode('.jpg', output_frame_research, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            if not ok: continue
+            frame_bytes = jpeg.tobytes()
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        time.sleep(0.033)
+
+
+def generate_frames_raw():
+    global output_frame_raw
+    print("[DEBUG] generate_frames_raw started")
     if not CV2_AVAILABLE:
         return
     while True:
         with frame_lock:
-            if output_frame is None:
+            if output_frame_raw is None:
+                # print("[DEBUG] Waiting for output_frame_raw...") # excessive log
                 time.sleep(0.05)
                 continue
-            ok, jpeg = cv2.imencode('.jpg', output_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            ok, jpeg = cv2.imencode('.jpg', output_frame_raw, [cv2.IMWRITE_JPEG_QUALITY, 70])
             if not ok:
                 continue
             frame_bytes = jpeg.tobytes()
@@ -451,9 +516,23 @@ def stop_all():
 def index():
     return render_template('index.html')
 
+@app.route('/research')
+def research_dashboard():
+    return render_template('research.html')
+
 @app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(),
+    return Response(generate_frames_index(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/video_feed_research')
+def video_feed_research():
+    return Response(generate_frames_research(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/video_feed_raw')
+def video_feed_raw():
+    return Response(generate_frames_raw(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
@@ -529,7 +608,7 @@ def on_stop():
 def on_servo(data):
     if not _require_auth(): return
     servo_id = int(data.get('id', 1))
-    angle = max(0, min(180, int(data.get('angle', 90))))
+    angle = max(0, min(180, int(data.get('angle', 60))))
     if HARDWARE_AVAILABLE:
         car.Ctrl_Servo(servo_id, angle)
     with state_lock:
@@ -622,8 +701,127 @@ def on_detection_config(data):
             traceback.print_exc()
             emit('detection_class_update', {"success": False, "error": str(e)})
 
-@socketio.on('detection_status')
-def on_detection_status():
+@socketio.on('set_scene')
+def on_set_scene(data):
+    """
+    Switch context based on a scene name (Phase 2 trigger).
+    data: {'scene': 'living_room'}
+    """
+    global yolo_model, _MODEL_FILENAME, IS_WORLD_MODEL, YOLO_AVAILABLE
+
+    if not _require_auth(): return
+    scene_name = data.get('scene', '').strip()
+    if not scene_name:
+        return
+    
+    print(f"[Phase2] Switching context to scene: {scene_name}")
+    
+    # 1. Query Database for context
+    # Returns {'classes': [...], 'model': 'foo.pt'}
+    ctx = context_mgr.get_context_for_scene(scene_name)
+    target_classes = ctx['classes']
+    target_model_file = ctx['model']
+    
+    print(f"[Phase2] Context for '{scene_name}': Model={target_model_file}, Classes={target_classes}")
+
+    # 2. Check if we need to switch models
+    if target_model_file != _MODEL_FILENAME and target_model_file:
+        new_model_path = os.path.join(os.path.dirname(__file__), 'models', target_model_file)
+        if os.path.exists(new_model_path):
+            try:
+                print(f"[Phase2] Loading new model: {target_model_file}...")
+                with detection_lock:
+                    yolo_model = YOLO(new_model_path) # Reload model
+                    _MODEL_FILENAME = target_model_file
+                    IS_WORLD_MODEL = 'world' in _MODEL_FILENAME.lower()
+                    YOLO_AVAILABLE = True
+                print(f"[Phase2] Model switched to {_MODEL_FILENAME}")
+            except Exception as e:
+                print(f"[ERROR] Failed to load model {target_model_file}: {e}")
+                emit('model_update_error', {'error': str(e)})
+                # Fallback to existing model logic...
+        else:
+            print(f"[WARN] Model file {target_model_file} not found! Keeping current model.")
+    
+    # 3. Update Classes (if supported)
+    if YOLO_AVAILABLE:
+        try:
+            if IS_WORLD_MODEL:
+                yolo_model.set_classes(target_classes)
+                print(f"[OK] set_classes called on {_MODEL_FILENAME}")
+            else:
+                print(f"[INFO] {_MODEL_FILENAME} uses fixed classes (not World model).")
+
+            with detection_lock:
+                detection_state["classes"] = target_classes
+                # Auto-enable detection when scene is set
+                detection_state["enabled"] = True
+            
+            emit('detection_class_update', {"success": True, "classes": target_classes})
+            emit('detection_state', { # Broadcast new state including enabled=True
+                "enabled": True,
+                "confidence": detection_state["confidence"],
+                "classes": target_classes,
+                "yolo_available": YOLO_AVAILABLE,
+                "detections": detection_state["detections"],
+            })
+            emit('context_switched', {
+                "scene": scene_name, 
+                "classes": target_classes,
+                "model": _MODEL_FILENAME
+            })
+        except Exception as e:
+            print(f"[ERROR] Context switch failed: {e}")
+            emit('detection_class_update', {"success": False, "error": str(e)})
+
+# ─── Context Management API ───────────────────────────────────────────────────
+@socketio.on('get_all_contexts')
+def on_get_all_contexts():
+    if not _require_auth(): return
+    scenes = context_mgr.get_all_scenes()
+    emit('all_contexts', scenes)
+
+@socketio.on('save_context')
+def on_save_context(data):
+    # data: {scene_name, classes:[], model_file}
+    if not _require_auth(): return
+    try:
+        context_mgr.update_scene(
+            data['scene_name'], 
+            data['classes'], 
+            data.get('model_file')
+        )
+        emit('save_context_result', {'success': True})
+        on_get_all_contexts() # Refresh list
+    except Exception as e:
+        emit('save_context_result', {'success': False, 'error': str(e)})
+
+@socketio.on('research_servo')
+def on_research_servo(data):
+    # Bypass auth as requested for Research page
+    # if not _require_auth(): return 
+    servo_id = int(data.get('id', 1))
+    angle = max(0, min(180, int(data.get('angle', 60))))
+    if HARDWARE_AVAILABLE:
+        car.Ctrl_Servo(servo_id, angle)
+    with state_lock:
+        if servo_id == 1:
+            robot_state["w_angle"] = angle
+        elif servo_id == 2:
+            robot_state["h_angle"] = angle
+
+@socketio.on('join_research')
+def on_join_research():
+    global research_active
+    print("[WS] Client joined research mode")
+    research_active = True
+
+@socketio.on('leave_research')
+def on_leave_research():
+    global research_active
+    print("[WS] Client left research mode")
+    # Optional: check if other clients are there? For simplicity, we assume one.
+    research_active = False
     with detection_lock:
         emit('detection_state', {
             "enabled": detection_state["enabled"],
@@ -659,6 +857,6 @@ def start_background_tasks():
 start_background_tasks()
 
 if __name__ == '__main__':
-    print("  Open http://<YOUR_IP>:5000 in a browser (Development Mode)")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    print("  Open http://<YOUR_IP>:5001 in a browser (Development Mode)")
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True)
 

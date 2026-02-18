@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Research: Two-Phase Context Recognition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+            /* allows overflow scroll if needed */
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .video-container {
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-box {
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            min-height: 100px;
+        }
+
+        .scene-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .scene-list li:first-child {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background: var(--border);
+        }
+
+        select {
+            background: var(--bg-color);
+            color: white;
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>Two-Phase Context Recognition</h1>
+            <div class="subtitle">Adaptive Hierarchical Detection Framework • Student: Muhammad Tsaqif Mukhayyar</div>
+        </div>
+        <div>
+            <span class="status-pill"></span> <span id="conn-status">Connected</span>
+        </div>
+    </header>
+
+    <div class="main-grid">
+        <!-- Phase 1 Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Phase 1: Global Context</div>
+                <div class="badge">GoogLeNet Places365</div>
+            </div>
+            <div class="video-container">
+                <img src="/video_feed_raw" alt="Phase 1 Feed">
+                <div
+                    style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">
+                    Raw Input
+                </div>
+            </div>
+            <div class="info-box">
+                <div style="margin-bottom:8px; color:var(--text-sub);">Top Predicted Scenes:</div>
+                <ul class="scene-list" id="scene-predictions" style="list-style:none; padding:0; margin:0;">
+                    <li>Waiting for data...</li>
+                </ul>
+            </div>
+            <div class="controls">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label class="switch-label">Mode:</label>
+                    <select id="transition-mode">
+                        <option value="auto">Auto-Transition</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 2 Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Phase 2: Adaptive Detail</div>
+                <div class="badge">YOLOv8s-WorldV2</div>
+            </div>
+            <div class="video-container">
+                <img src="/video_feed_research" alt="Phase 2 Feed">
+                <div
+                    style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">
+                    Augmented
+                </div>
+            </div>
+            <div class="info-box">
+                <div style="margin-bottom:8px; color:var(--text-sub);">Current Context (YOLO Classes):</div>
+                <div id="current-context" style="color:var(--accent); font-weight:bold; margin-bottom:10px;">
+                    Checking...
+                </div>
+                <div
+                    style="margin-bottom:8px; color:var(--text-sub); border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+                    Detected Objects:</div>
+                <div id="detected-objects">
+                    -
+                </div>
+            </div>
+            <div class="controls">
+                <select id="manual-scene-select">
+                    <option value="" disabled selected>Select Scene...</option>
+                    <option value="living_room">Living Room</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="bedroom">Bedroom</option>
+                    <option value="office">Office</option>
+                    <option value="street">Street</option>
+                    <option value="park">Park</option>
+                </select>
+                <button class="secondary" onclick="setManualScene()">Set Scene</button>
+            </div>
+
+            <!-- Keyboard Control Hint -->
+            <div
+                style="margin-top:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; font-size:0.8rem; color:var(--text-sub); display:flex; align-items:center; gap:10px;">
+                <div style="font-size:1.2rem;">⌨️</div>
+                <div>
+                    <strong style="color:var(--text-main);">Camera Control:</strong> <br>
+                    Use <span
+                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">WASD</span>
+                    or <span
+                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Arrow
+                        Keys</span> to Move.<br>
+                    Press <span
+                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Space</span>
+                    or <span
+                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Enter</span>
+                    to Center.
+                </div>
+            </div>
+
+            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
+                <button onclick="openManageModal()"
+                    style="width:100%; background:var(--panel-bg); border:1px solid var(--accent); color:var(--accent);">
+                    ⚙️ Manage Contexts & Models
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="manage-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+        <div
+            style="background:var(--bg-color); width:80%; max-width:800px; max-height:90vh; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
+            <div
+                style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
+                <h2 style="margin:0;">Manage Scenes</h2>
+                <button onclick="closeManageModal()" class="secondary">✕</button>
+            </div>
+            <div style="padding:20px; overflow-y:auto; flex:1;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead style="background:var(--panel-bg); text-align:left;">
+                        <tr>
+                            <th style="padding:10px;">Scene Name</th>
+                            <th style="padding:10px;">Model File</th>
+                            <th style="padding:10px;">Classes (Count)</th>
+                            <th style="padding:10px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="context-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+
+                <div style="margin-top:20px; background:var(--panel-bg); padding:15px; border-radius:8px;">
+                    <h3 style="margin-top:0;">Add / Edit Scene</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Scene Name</label>
+                            <input type="text" id="edit-name"
+                                style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
+                        </div>
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Model Filename (in
+                                /models/)</label>
+                            <input type="text" id="edit-model" value="yolov8s-worldv2.pt"
+                                style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="display:block; margin-bottom:5px; font-size:0.8rem;">YOLO Classes (comma
+                            separated)</label>
+                        <textarea id="edit-classes" rows="3"
+                            style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;"></textarea>
+                    </div>
+                    <div style="margin-top:10px; text-align:right;">
+                        <button onclick="saveContext()">Save Context</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Mobile Servo Control Styles - Ported & Adapted */
+        .mobile-controls {
+            display: none;
+            /* hidden by default, shown via media query */
+            position: fixed;
+            inset: auto 0 0 0;
+            z-index: 100;
+            pointer-events: none;
+            padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+        }
+
+        .fly-pad {
+            position: fixed;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+            right: 20px;
+            /* Always on right for servo */
+            pointer-events: auto;
+            background: rgba(30, 41, 59, 0.85);
+            /* var(--panel-bg) with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            /* var(--accent) */
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .fly-label {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .fly-dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .fly-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: all 0.1s;
+        }
+
+        .fly-btn:active,
+        .fly-btn.pressed {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(0.95);
+        }
+
+        .fly-center {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+
+        /* Show on mobile/tablet */
+        @media (max-width: 1024px) {
+            .mobile-controls {
+                display: block;
+            }
+        }
+    </style>
+
+    <!-- Mobile Servo D-Pad -->
+    <div class="mobile-controls">
+        <div class="fly-pad">
+            <div class="fly-label">Camera Pan/Tilt</div>
+            <div class="fly-dpad">
+                <div></div>
+                <button class="fly-btn" data-servo="up">⬆</button>
+                <div></div>
+
+                <button class="fly-btn" data-servo="left">⬅</button>
+                <button class="fly-btn fly-center" data-servo="center">⊙</button>
+                <button class="fly-btn" data-servo="right">➡</button>
+
+                <div></div>
+                <button class="fly-btn" data-servo="down">⬇</button>
+                <div></div>
+            </div>
+            <div class="fly-label" style="margin-top:5px; font-size:0.55rem; color:rgba(255,255,255,0.4);">
+                Keyboard: Arrows / WASD <br>
+                Space/Enter to Center
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentMode = 'auto'; // auto or manual
+        let lastScene = '';
+
+        // Elements
+        const elSceneList = document.getElementById('scene-predictions');
+        const elContext = document.getElementById('current-context');
+        const elObjects = document.getElementById('detected-objects');
+        const elMode = document.getElementById('transition-mode');
+
+        elMode.addEventListener('change', (e) => {
+            currentMode = e.target.value;
+            console.log("Mode changed to:", currentMode);
+        });
+
+        socket.on('connect', () => {
+            document.getElementById('conn-status').innerText = "Connected";
+            document.getElementById('conn-status').style.color = "#22c55e";
+
+            // Authenticate automatically for research dashboard
+            socket.emit('authenticate', { password: 'admin' });
+            // Activate Research Mode on backend (enables YOLO for this view)
+            socket.emit('join_research');
+            // Initial detection config check
+            socket.emit('detection_status');
+        });
+
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave_research');
+        });
+
+        socket.on('phase1_result', (data) => {
+            // data: [{label: 'living_room', score: 0.8}, ...]
+            if (!data || data.length === 0) return;
+
+            // Update UI
+            elSceneList.innerHTML = data.slice(0, 3).map(item => `
+            <li>
+                <span>${item.label}</span>
+                <span>${(item.score * 100).toFixed(1)}%</span>
+            </li>
+        `).join('');
+
+            // Auto Transition Logic
+            if (currentMode === 'auto') {
+                const topScene = data[0].label;
+                const topScore = data[0].score;
+
+                // Simple threshold logic
+                if (topScore > 0.4 && topScene !== lastScene) {
+                    // Determine if we should switch
+                    // We'll normalize the scene name a bit to match our keys
+                    // The prompt data has '/l/living_room', but phase1_model might return full path
+                    // ContextManager expects 'living_room' or path
+
+                    console.log("Auto-switching to:", topScene);
+                    socket.emit('set_scene', { scene: topScene });
+                    lastScene = topScene;
+                }
+            }
+        });
+
+        socket.on('context_switched', (data) => {
+            console.log("Context switched:", data);
+            lastScene = data.scene; // Sync state
+            // UI updates via detection_state usually, but we can animate/notify here if needed
+        });
+
+        socket.on('detection_state', (data) => {
+            // Update Current Context list
+            if (data.classes && data.classes.length > 0) {
+                elContext.innerText = data.classes.join(', ');
+            } else {
+                elContext.innerText = "Default / None";
+            }
+        });
+
+        socket.on('detection_results', (results) => {
+            // Update Detected Objects debug list in real-time
+            if (!results || results.length === 0) {
+                elObjects.innerText = "None";
+                return;
+            }
+            const counts = {};
+            results.forEach(d => {
+                counts[d.class] = (counts[d.class] || 0) + 1;
+            });
+            const txt = Object.entries(counts).map(([k, v]) => `${k} (${v})`).join(', ');
+            elObjects.innerText = txt;
+        });
+
+        function setManualScene() {
+            const sel = document.getElementById('manual-scene-select');
+            const scene = sel.value;
+            if (scene) {
+                currentMode = 'manual'; // force manual mode so auto doesn't override immediately
+                elMode.value = 'manual';
+                socket.emit('set_scene', { scene: scene });
+            }
+        }
+
+        // --- Management UI Functions ---
+        const modal = document.getElementById('manage-modal');
+
+        function openManageModal() {
+            modal.style.display = 'flex';
+            socket.emit('get_all_contexts');
+        }
+
+        function closeManageModal() {
+            modal.style.display = 'none';
+        }
+
+        socket.on('all_contexts', (data) => {
+            const tbody = document.getElementById('context-table-body');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                tr.innerHTML = `
+                <td style="padding:10px;">${item.name}</td>
+                <td style="padding:10px; font-family:monospace; color:var(--accent);">${item.model || 'Default'}</td>
+                <td style="padding:10px;">${item.classes.length} classes</td>
+                <td style="padding:10px;">
+                    <button class="secondary" style="padding:4px 8px; font-size:0.8rem;" onclick='editContext(${JSON.stringify(item)})'>Edit</button>
+                </td>
+            `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        function editContext(item) {
+            document.getElementById('edit-name').value = item.name;
+            document.getElementById('edit-model').value = item.model || 'yolov8s-worldv2.pt';
+            document.getElementById('edit-classes').value = item.classes.join(', ');
+        }
+
+        function saveContext() {
+            const name = document.getElementById('edit-name').value;
+            const model = document.getElementById('edit-model').value;
+            const classesStr = document.getElementById('edit-classes').value;
+
+            if (!name) return alert("Scene Name required");
+
+            const classes = classesStr.split(',').map(s => s.trim()).filter(s => s);
+
+            socket.emit('save_context', {
+                scene_name: name,
+                model_file: model,
+                classes: classes
+            });
+        }
+
+        socket.on('save_context_result', (res) => {
+            if (res.success) {
+                alert("Saved!");
+                // clear form
+                document.getElementById('edit-name').value = '';
+                document.getElementById('edit-classes').value = '';
+            } else {
+                alert("Error: " + res.error);
+            }
+        });
+
+        // --- Mobile & Keyboard Servo Logic ---
+        const SERVO_MAP = { up: [2, 5], down: [2, -5], left: [1, 5], right: [1, -5] };
+        const KEY_MAP = {
+            'ArrowUp': 'up', 'w': 'up',
+            'ArrowDown': 'down', 's': 'down',
+            'ArrowLeft': 'left', 'a': 'left',
+            'ArrowRight': 'right', 'd': 'right',
+            ' ': 'center', 'Enter': 'center'
+        };
+
+        let servoInterval = null;
+        let activeAction = null;
+        // Current values (approx, backend is source of truth but we need local state for relative moves)
+        let servoH = 90, servoV = 90;
+
+        function sendServo(id, angle) {
+            angle = Math.max(0, Math.min(180, angle));
+            socket.emit('research_servo', { id, angle });
+            return angle;
+        }
+
+        function startServoMove(action) {
+            if (activeAction === action) return; // ignore repeats
+
+            // Stop any existing action/interval to prevent conflicts
+            if (activeAction || servoInterval) stopServoMove();
+
+            activeAction = action;
+
+            if (action === 'center') {
+                servoH = sendServo(1, 90);
+                servoV = sendServo(2, 90);
+                // Visual feedback brief
+                const btn = document.querySelector(`button[data-servo="center"]`);
+                if (btn) {
+                    btn.classList.add('pressed');
+                    setTimeout(() => btn.classList.remove('pressed'), 200);
+                }
+                activeAction = null;
+                return;
+            }
+
+            const mapping = SERVO_MAP[action];
+            if (!mapping) return;
+            const [id, delta] = mapping;
+
+            const update = () => {
+                if (id === 1) servoH = sendServo(1, servoH + delta);
+                else servoV = sendServo(2, servoV + delta);
+            };
+            update();
+            servoInterval = setInterval(update, 100);
+
+            // Visual feedback
+            const btn = document.querySelector(`button[data-servo="${action}"]`);
+            if (btn) btn.classList.add('pressed');
+        }
+
+        function stopServoMove() {
+            if (servoInterval) { clearInterval(servoInterval); servoInterval = null; }
+            if (activeAction) {
+                const btn = document.querySelector(`button[data-servo="${activeAction}"]`);
+                if (btn) btn.classList.remove('pressed');
+                activeAction = null;
+            }
+        }
+
+        // Touch/Mouse Events
+        document.querySelectorAll('[data-servo]').forEach(btn => {
+            const action = btn.dataset.servo;
+
+            const start = (e) => {
+                e.preventDefault();
+                startServoMove(action);
+                if (navigator.vibrate) navigator.vibrate(15);
+            };
+
+            const end = (e) => {
+                e.preventDefault();
+                stopServoMove();
+            };
+
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('touchstart', start, { passive: false });
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('mouseleave', end);
+        });
+
+        // Keyboard Events
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const action = KEY_MAP[e.key];
+            if (action) startServoMove(action);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const action = KEY_MAP[e.key];
+            if (action && activeAction === action) stopServoMove();
+        });
+
+    </script>
+</body>
+
+</html>
