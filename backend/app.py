@@ -12,6 +12,9 @@ import threading
 import json
 import traceback
 import sqlite3
+import psutil
+import csv
+from datetime import datetime
 from flask import Flask, render_template, Response, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -231,6 +234,45 @@ frame_lock = threading.Lock()
 research_active = False # True if a client is on /research
 
 
+# ─── Performance Logger ───────────────────────────────────────────────────────
+class PerformanceLogger:
+    def __init__(self, log_dir='data'):
+        self.log_dir = os.path.join(os.path.dirname(__file__), log_dir)
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        self.log_file = None
+        self.writer = None
+        self.is_logging = False
+        self.start_time = None
+
+    def start(self):
+        if self.is_logging: return
+        filename = f"perf_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        self.log_path = os.path.join(self.log_dir, filename)
+        self.log_file = open(self.log_path, 'w', newline='')
+        self.writer = csv.writer(self.log_file)
+        self.writer.writerow(['timestamp', 'elapsed_sec', 'fps', 'cpu_percent', 'ram_percent', 'temp_c'])
+        self.is_logging = True
+        self.start_time = time.time()
+        print(f"[LOG] Performance logging started: {self.log_path}")
+
+    def log(self, fps, cpu, ram, temp):
+        if not self.is_logging: return
+        elapsed = round(time.time() - self.start_time, 3)
+        self.writer.writerow([datetime.now().isoformat(), elapsed, round(fps, 2), cpu, ram, temp])
+        self.log_file.flush()
+
+    def stop(self):
+        if not self.is_logging: return
+        self.is_logging = False
+        if self.log_file:
+            self.log_file.close()
+            self.log_file = None
+        print("[LOG] Performance logging stopped.")
+
+perf_logger = PerformanceLogger()
+
+
 def camera_thread():
     global output_frame_index, output_frame_research, output_frame_raw, research_active
     if not CV2_AVAILABLE:
@@ -242,91 +284,152 @@ def camera_thread():
         time.sleep(2)
         print("[OK] Camera started.")
         frame_count = 0
+        start_time = time.time()
+        fps = 0.0
+        last_monitor_time = time.time()
+
         while True:
             ok, frame = cap.read()
             if not ok:
                 time.sleep(0.05)
                 continue
+                continue
             
+            # FPS Calculation
             frame_count += 1
+            elapsed = time.time() - start_time
+            if elapsed >= 1.0:
+                fps = frame_count / elapsed
+                frame_count = 0
+                start_time = time.time()
             
-            # 1. Capture Raw (Phase 1)
-            raw_copy = frame.copy()
-            with frame_lock:
-                output_frame_raw = raw_copy
-
-            # 2. Phase 1 Inference (Global Context)
-            if frame_count % 30 == 0 and phase1_model:
+            # System Monitoring (every 1s)
+            if time.time() - last_monitor_time >= 1.0:
+                cpu = psutil.cpu_percent()
+                ram = psutil.virtual_memory().percent
+                
+                # Try to get temp (Linux specific)
+                temp = 0.0
                 try:
-                    scenes = phase1_model.predict(raw_copy)
-                    if scenes:
-                        scene_data = [{'score': round(s, 3), 'label': l} for s, l in scenes]
-                        socketio.emit('phase1_result', scene_data)
-                except Exception as e:
-                    print(f"[ERROR] Phase 1 loop error: {e}")
+                    temps = psutil.sensors_temperatures()
+                    if 'cpu_thermal' in temps:
+                        temp = temps['cpu_thermal'][0].current
+                    elif 'coretemp' in temps:
+                        temp = temps['coretemp'][0].current
+                except:
+                    pass
+                    
+                robot_state['cpu_usage'] = cpu
+                robot_state['ram_usage'] = ram
+                robot_state['cpu_temp'] = temp
+                
+                # Log Data
+                perf_logger.log(fps, cpu, ram, temp)
+                
+                # Emit Stats
+                socketio.emit('system_stats', {
+                    'fps': round(fps, 1),
+                    'cpu': cpu,
+                    'ram': ram,
+                    'temp': temp,
+                    'logging': perf_logger.is_logging
+                })
+                
+                last_monitor_time = time.time()
 
-            # 3. YOLO Detection Logic
-            # Run if Index enabled OR Research active
-            index_enabled = detection_state["enabled"]
-            should_run_yolo = index_enabled or research_active
+            frame = cv2.resize(frame, (640, 480))
             
-            last_results = detection_state.get("last_results", [])
-
-            if should_run_yolo and YOLO_AVAILABLE:
-                if frame_count % 3 == 0:
+            # --- Phase 1: Global Context (Every 30 frames) ---
+            if frame_count % 30 == 0:
+                # Async Phase 1: Offload to background task to prevent blocking
+                def run_phase1(img):
                     try:
-                        conf = detection_state["confidence"]
-                        results = yolo_model.track(
-                            frame, conf=conf, verbose=False,
-                            persist=True, tracker="bytetrack.yaml",
-                            imgsz=320
-                        )
-                        det_list = []
-                        for r in results:
-                            for box in r.boxes:
-                                x1, y1, x2, y2 = box.xyxy[0].tolist()
-                                conf_val = float(box.conf[0])
-                                cls_id = int(box.cls[0])
-                                track_id = int(box.id[0]) if box.id is not None else -1
-                                names = r.names
-                                if isinstance(names, dict):
-                                    cls_name = names.get(cls_id, str(cls_id))
-                                else:
-                                    cls_name = names[cls_id] if 0 <= cls_id < len(names) else str(cls_id)
-                                
-                                det_list.append({
-                                    "class": cls_name, "id": track_id,
-                                    "confidence": round(conf_val, 2),
-                                    "bbox": [int(x1), int(y1), int(x2), int(y2)],
-                                })
-                        
-                        with detection_lock:
-                            detection_state["detections"] = det_list
-                            detection_state["last_results"] = det_list
-                            last_results = det_list
-                            
-                        socketio.emit('detection_results', det_list)
+                        scenes = phase1_model.predict(img)
+                        socketio.emit('phase1_result', scenes)
                     except Exception as e:
-                        print(f"[ERROR] YOLO loop error: {e}")
+                        print(f"[ERR] Phase 1: {e}")
+                socketio.start_background_task(run_phase1, frame.copy())
 
-            # 4. Draw Overlays
-            # We need two potential output frames
-            
-            # Frame for Research (Always annotated if detection running)
-            frame_res = raw_copy.copy() 
-            if last_results:
+            with detection_lock:
+                # Run if Index enabled OR Research active
+                index_enabled = detection_state["enabled"]
+                should_run_yolo = index_enabled or research_active
+                
+                last_results = detection_state.get("last_results", [])
+
+                # Performance: Only run YOLO every N frames (skip frames)
+                detect_interval = 3 
+
+                if should_run_yolo and YOLO_AVAILABLE:
+                    if frame_count % detect_interval == 0:
+                        if yolo_model:
+                            # Resize to 320 for speed
+                            # Use track() for better consistency if permitted, otherwise predict()
+                            # keeping predict() for now to ensure stability with frame skipping
+                            try:
+                                results = yolo_model.predict(frame, conf=detection_state["confidence"], verbose=False, imgsz=320)
+                                
+                                # Process results
+                                new_results = []
+                                r = results[0]
+                                names = r.names
+                                
+                                for box in r.boxes:
+                                    b = box.xyxy[0].cpu().numpy().astype(int)
+                                    cls_id = int(box.cls[0])
+                                    conf = float(box.conf[0])
+                                    
+                                    # Get class name
+                                    if isinstance(names, dict):
+                                        cls_name = names.get(cls_id, str(cls_id))
+                                    else:
+                                        cls_name = names[cls_id] if 0 <= cls_id < len(names) else str(cls_id)
+                                        
+                                    new_results.append({
+                                        "bbox": [int(b[0]), int(b[1]), int(b[2]), int(b[3])],
+                                        "class": cls_name,
+                                        "id": cls_id,
+                                        "conf": conf
+                                    })
+
+                                # Update state SAFELY (outside try/except logic issues)
+                                detection_state["last_results"] = new_results
+                                detection_state["detections"] = [{"class": d["class"], "conf": d["conf"]} for d in new_results]
+                                
+                                socketio.emit('detection_results', detection_state["detections"])
+
+                            except Exception as e:
+                                print(f"[ERR] YOLO Inference/Parsing: {e}")
+                                # On error, keep old results or clear?
+                                # Keeping old results reduces flickering on transient errors
+                                pass
+             
+            # Create Output Frames
+            # 1. Raw Frame (Phase 1)
+            # 2. Research Frame (Always Annotated if Active)
+            # 3. Index Frame (Annotated only if Index Enabled)
+
+            frame_res = frame.copy()
+            frame_idx = frame.copy()
+
+            # Draw Overlay for Research (Always if active)
+            if research_active:
                 _draw_results(frame_res, last_results)
-            
-            # Frame for Index (Annotated only if index_enabled)
-            frame_idx = raw_copy.copy()
-            if index_enabled and last_results:
+                # Draw FPS
+                cv2.putText(frame_res, f"FPS: {fps:.1f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                if perf_logger.is_logging:
+                     cv2.circle(frame_res, (620, 20), 10, (0, 0, 255), -1) # REC indicator
+
+            # Draw Overlay for Index (Only if enabled)
+            if index_enabled:
                 _draw_results(frame_idx, last_results)
 
             with frame_lock:
+                output_frame_raw = frame # Pure raw
                 output_frame_research = frame_res
                 output_frame_index = frame_idx
                 
-            time.sleep(0.033)
+            time.sleep(0.01)
     except Exception as e:
         print(f"[WARN] Camera thread died: {e}")
 
@@ -856,7 +959,16 @@ def start_background_tasks():
 # Run startup tasks when imported (Production/Gunicorn) or run directly
 start_background_tasks()
 
+@socketio.on('start_logging')
+def on_start_logging():
+    perf_logger.start()
+    emit('system_stats', {'logging': True})
+
+@socketio.on('stop_logging')
+def on_stop_logging():
+    perf_logger.stop()
+    emit('system_stats', {'logging': False})
+
 if __name__ == '__main__':
     print("  Open http://<YOUR_IP>:5001 in a browser (Development Mode)")
     socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True)
-

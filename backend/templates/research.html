@@ -446,6 +446,55 @@
         </div>
     </div>
 
+    <!-- Collapsible System Monitor (Flying Sticky) -->
+    <div id="perf-sticky"
+        style="position:fixed; bottom:20px; left:20px; z-index:9000; display:flex; flex-direction:column; align-items:flex-start;">
+
+        <!-- Toggle Button -->
+        <button id="perf-toggle" onclick="togglePerfPanel()" style="background:rgba(30, 41, 59, 0.9); border:1px solid var(--accent); color:var(--text-main); 
+                   padding:8px 12px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5); 
+                   display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <span>📊 System Health</span>
+            <span id="mini-status" style="font-size:0.8rem; color:var(--text-sub);">FPS: --</span>
+        </button>
+
+        <!-- The Panel (Hidden by default or valid state) -->
+        <div id="perf-content" style="display:none; margin-top:10px; width:340px; background:rgba(30, 41, 59, 0.95); 
+                 backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:12px; padding:15px; 
+                 box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <div class="badge" id="fps-display">FPS: --</div>
+                <div class="badge" id="cpu-temp-display">Temp: --°C</div>
+            </div>
+
+            <!-- Chart -->
+            <div style="height:120px; margin-bottom:15px;">
+                <canvas id="perfChart"></canvas>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-sub);">CPU</div>
+                    <div id="cpu-val" style="font-size:1.1rem; font-weight:bold; color:var(--accent);">0%</div>
+                </div>
+                <div style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-sub);">RAM</div>
+                    <div id="ram-val" style="font-size:1.1rem; font-weight:bold; color:var(--success);">0%</div>
+                </div>
+            </div>
+
+            <!-- Control -->
+            <button id="btn-log" onclick="toggleLogging()" style="width:100%; font-size:0.9rem;">
+                ● Start Recording
+            </button>
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         const socket = io();
         let currentMode = 'auto'; // auto or manual
@@ -456,6 +505,111 @@
         const elContext = document.getElementById('current-context');
         const elObjects = document.getElementById('detected-objects');
         const elMode = document.getElementById('transition-mode');
+
+        // Monitor Elements
+        const elFps = document.getElementById('fps-display');
+        const elTemp = document.getElementById('cpu-temp-display');
+        const elCpu = document.getElementById('cpu-val');
+        const elRam = document.getElementById('ram-val');
+        const btnLog = document.getElementById('btn-log');
+
+        // Chart Init
+        const ctx = document.getElementById('perfChart').getContext('2d');
+        const perfChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(20).fill(''),
+                datasets: [
+                    {
+                        label: 'CPU %',
+                        data: Array(20).fill(0),
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'RAM %',
+                        data: Array(20).fill(0),
+                        borderColor: '#22c55e',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b', font: { size: 10 } }
+                    }
+                }
+            }
+        });
+
+        // Toggle Logging
+        let isLogging = false;
+        function toggleLogging() {
+            if (isLogging) {
+                socket.emit('stop_logging');
+            } else {
+                socket.emit('start_logging');
+            }
+        }
+
+        let perfOpen = false;
+        function togglePerfPanel() {
+            perfOpen = !perfOpen;
+            document.getElementById('perf-content').style.display = perfOpen ? 'block' : 'none';
+        }
+
+        socket.on('system_stats', (data) => {
+            // Update Text
+            elFps.innerText = `FPS: ${data.fps}`;
+            document.getElementById('mini-status').innerText = `FPS: ${data.fps}`;
+            elTemp.innerText = `Temp: ${data.temp}°C`;
+            elCpu.innerText = `${data.cpu}%`;
+            elRam.innerText = `${data.ram}%`;
+
+            // Update Button
+            isLogging = data.logging;
+            if (isLogging) {
+                btnLog.innerText = "■ Stop Rec";
+                btnLog.style.background = "#ef4444"; // Red
+                btnLog.classList.add('pulse');
+            } else {
+                btnLog.innerText = "● Start Rec";
+                btnLog.style.background = ""; // Default accent
+                btnLog.classList.remove('pulse');
+            }
+
+            // Update Chart
+            const cpuData = perfChart.data.datasets[0].data;
+            const ramData = perfChart.data.datasets[1].data;
+
+            cpuData.push(data.cpu);
+            cpuData.shift();
+            ramData.push(data.ram);
+            ramData.shift();
+
+            perfChart.update();
+        });
+
+        // Add pulse animation
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+            .pulse { animation: pulse 1.5s infinite; }
+        `;
+        document.head.appendChild(style);
 
         elMode.addEventListener('change', (e) => {
             currentMode = e.target.value;

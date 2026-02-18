@@ -6,8 +6,9 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - backend-data:/app/data                      # persist SQLite access logs
+      - ./backend/data:/app/data                     # Mount data from host (persist DBs)
       - /dev:/dev                                    # pass all devices (camera, I2C, etc.)
+      - ./backend/models:/app/models                 # Mount models from host (don't build them in)
     privileged: true                                # required for hardware access
     restart: always
 

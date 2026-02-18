@@ -74,7 +74,7 @@ class Phase1Model:
             for i in idxs:
                 label = self.labels[i] if i < len(self.labels) else f"Class {i}"
                 score = float(prob[0][i])
-                results.append((score, label))
+                results.append({"score": score, "label": label})
                 
             return results
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=cloudflared
+After=network-online.target wg-quick@nrt-a08.service
+Wants=network-online.target wg-quick@nrt-a08.service
+
+[Service]
+TimeoutStartSec=15
+Type=notify
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run --token eyJhIjoiZjAwZjc3YWE0NWFmZjhmNWZiMmRkZmJlNjQ2MGFjNDEiLCJ0IjoiODA3ODg2MzAtMzEzMS00YWU4LWJkNzMtMDk2M2U1MzU0MzZkIiwicyI6Ik5HTTBZMll6WkdVdE1EZzRNaTAwTUdKakxUaGxZVEV0WkRoall6TXpOamd3TmpVeCJ9
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

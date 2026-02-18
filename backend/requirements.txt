@@ -11,3 +11,5 @@ smbus2
 ultralytics
 onnxruntime
 git+https://github.com/ultralytics/CLIP.git
+lapx
+psutil
