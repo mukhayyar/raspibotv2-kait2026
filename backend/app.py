@@ -11,7 +11,9 @@ import time
 import threading
 import json
 import traceback
+import subprocess
 import sqlite3
+import numpy as np
 import psutil
 import csv
 from datetime import datetime
@@ -224,214 +226,254 @@ robot_state = {
     "connected": True,
 }
 
-# ─── Camera Streaming ─────────────────────────────────────────────────────────
-output_frame_index = None    # For Index (conditionally annotated)
-output_frame_research = None # For Phase 2 (always annotated)
-output_frame_raw = None      # For Phase 1 (clean)
-frame_lock = threading.Lock()
+# ─── Global State & Shared Frames ─────────────────────────────────────────────
+research_active = False
 
-# State flags
-research_active = False # True if a client is on /research
+class FrameManager:
+    def __init__(self):
+        self.raw_frame = None
+        self.lock = threading.Lock()
+        self.last_update_time = 0
 
+    def update(self, frame):
+        with self.lock:
+            self.raw_frame = frame
+            self.last_update_time = time.time()
 
-# ─── Performance Logger ───────────────────────────────────────────────────────
-class PerformanceLogger:
-    def __init__(self, log_dir='data'):
-        self.log_dir = os.path.join(os.path.dirname(__file__), log_dir)
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
-        self.log_file = None
-        self.writer = None
-        self.is_logging = False
-        self.start_time = None
+    def get(self):
+        with self.lock:
+            return self.raw_frame.copy() if self.raw_frame is not None else None
 
-    def start(self):
-        if self.is_logging: return
-        filename = f"perf_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        self.log_path = os.path.join(self.log_dir, filename)
-        self.log_file = open(self.log_path, 'w', newline='')
-        self.writer = csv.writer(self.log_file)
-        self.writer.writerow(['timestamp', 'elapsed_sec', 'fps', 'cpu_percent', 'ram_percent', 'temp_c'])
-        self.is_logging = True
-        self.start_time = time.time()
-        print(f"[LOG] Performance logging started: {self.log_path}")
+frame_manager = FrameManager()
 
-    def log(self, fps, cpu, ram, temp):
-        if not self.is_logging: return
-        elapsed = round(time.time() - self.start_time, 3)
-        self.writer.writerow([datetime.now().isoformat(), elapsed, round(fps, 2), cpu, ram, temp])
-        self.log_file.flush()
+# ─── Camera Thread (Capture Only) ─────────────────────────────────────────────
+class LibCameraCapture:
+    """Wrapper to use rpicam-vid/libcamera-vid via subprocess for Pi 5 CSI cameras."""
+    def __init__(self, width=640, height=480, framerate=30):
+        self.width = width
+        self.height = height
+        self.frame_size = int(width * height * 1.5) # YUV420 size
+        self.proc = None
+        for cmd in ['rpicam-vid', 'libcamera-vid']:
+            try:
+                self.proc = subprocess.Popen(
+                    [cmd, '-t', '0', '--nopreview', '--width', str(width), 
+                     '--height', str(height), '--framerate', str(framerate), 
+                     '--codec', 'yuv420', '--vflip', '--hflip', '-o', '-'],
+                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+                )
+                break
+            except FileNotFoundError:
+                continue
 
-    def stop(self):
-        if not self.is_logging: return
-        self.is_logging = False
-        if self.log_file:
-            self.log_file.close()
-            self.log_file = None
-        print("[LOG] Performance logging stopped.")
+    def isOpened(self):
+        return self.proc is not None and self.proc.poll() is None
 
-perf_logger = PerformanceLogger()
+    def read(self):
+        if not self.isOpened():
+            return False, None
+        raw = self.proc.stdout.read(self.frame_size)
+        if len(raw) != self.frame_size:
+            return False, None
+        yuv = np.frombuffer(raw, dtype=np.uint8).reshape((self.height + self.height // 2, self.width))
+        bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
+        return True, bgr
 
+    def set(self, prop, value):
+        pass # Not applicable for this simple wrapper
+        
+    def release(self):
+        if self.proc:
+            self.proc.terminate()
+            self.proc.wait()
 
-def camera_thread():
-    global output_frame_index, output_frame_research, output_frame_raw, research_active
+def camera_capture_thread():
+    """Reads frames from the camera as fast as possible."""
+    global CV2_AVAILABLE
     if not CV2_AVAILABLE:
+        print("[WARN] Camera thread exiting: OpenCV not available.")
         return
-    try:
-        cap = cv2.VideoCapture(0)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        time.sleep(2)
-        print("[OK] Camera started.")
-        frame_count = 0
-        start_time = time.time()
-        fps = 0.0
-        last_monitor_time = time.time()
 
-        while True:
+    # Check for requested camera type (CSI or USB). Default to auto-detect.
+    camera_type = os.environ.get('CAMERA_TYPE', 'AUTO').upper()
+    cap = None
+
+    if camera_type in ['CSI', 'AUTO']:
+        print("[INFO] Attempting to open CSI Camera via libcamera subprocess...")
+        cap = LibCameraCapture()
+        if cap.isOpened():
+            print("[OK] CSI Camera opened successfully (libcamera).")
+        else:
+            if camera_type == 'CSI':
+                print("[ERR] Requested CSI Camera but failed to open.")
+            cap = None
+
+    if (cap is None or not cap.isOpened()) and camera_type in ['USB', 'AUTO']:
+        print("[INFO] Attempting to open USB Camera (default index 0)...")
+        cap = cv2.VideoCapture(0)
+        if cap is not None and cap.isOpened():
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            print("[OK] USB Camera opened successfully (index 0).")
+        else:
+            if camera_type == 'USB':
+                print("[ERR] Requested USB Camera but failed to open.")
+            cap = None
+
+    if cap is None or not cap.isOpened():
+        print("[ERR] Could not open any camera. Verify connections and permissions.")
+        return
+
+    print("[OK] Camera capture thread running.")
+    
+    fps = 0.0
+    fps_start_time = time.time()
+    fps_frames = 0
+
+    while True:
+        try:
             ok, frame = cap.read()
             if not ok:
-                time.sleep(0.05)
-                continue
+                time.sleep(0.1)
                 continue
             
             # FPS Calculation
-            frame_count += 1
-            elapsed = time.time() - start_time
-            if elapsed >= 1.0:
-                fps = frame_count / elapsed
-                frame_count = 0
-                start_time = time.time()
-            
-            # System Monitoring (every 1s)
-            if time.time() - last_monitor_time >= 1.0:
-                cpu = psutil.cpu_percent()
-                ram = psutil.virtual_memory().percent
+            fps_frames += 1
+            now = time.time()
+            if now - fps_start_time >= 1.0:
+                fps = fps_frames / (now - fps_start_time)
+                fps_frames = 0
+                fps_start_time = now
+                with state_lock:
+                    robot_state['fps'] = fps
                 
-                # Try to get temp (Linux specific)
-                temp = 0.0
-                try:
-                    temps = psutil.sensors_temperatures()
-                    if 'cpu_thermal' in temps:
-                        temp = temps['cpu_thermal'][0].current
-                    elif 'coretemp' in temps:
-                        temp = temps['coretemp'][0].current
-                except:
-                    pass
+            # Draw FPS overlay directly on the capture frame
+            cv2.putText(frame, f"Cam FPS: {fps:.1f}", (10, 30), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            
+            frame_manager.update(frame)
+            time.sleep(0.005) # Yield slightly
+        except Exception as e:
+            print(f"[ERR] Camera capture loop: {e}")
+            time.sleep(1)
+
+# ─── Inference Thread (YOLO) ──────────────────────────────────────────────────
+def inference_thread():
+    """Runs YOLO inference on the latest available frame."""
+    global detection_state, research_active, yolo_model
+    
+    print("[OK] Inference thread started.")
+    
+    last_frame_time = 0
+    
+    while True:
+        try:
+            # Check if we should run
+            index_enabled = detection_state["enabled"]
+            should_run = (index_enabled or research_active) and YOLO_AVAILABLE and (yolo_model is not None)
+            
+            if not should_run:
+                time.sleep(0.2)
+                continue
+                
+            frame = frame_manager.get()
+            if frame is None:
+                time.sleep(0.1)
+                continue
+            
+            # Don't re-process the exact same frame if we're faster than camera
+            # (Simple timestamp check could be added to FrameManager, but simple sleep is ok)
+
+            conf = detection_state["confidence"]
+            
+            # Inference
+            results = yolo_model.predict(frame, conf=conf, verbose=False, imgsz=320)
+            
+            # Processing
+            new_results = []
+            if results:
+                r = results[0]
+                names = r.names
+                boxes = r.boxes
+                
+                for box in boxes:
+                    b = box.xyxy[0].cpu().numpy().astype(int)
+                    cls_id = int(box.cls[0])
+                    conf_val = float(box.conf[0])
                     
-                robot_state['cpu_usage'] = cpu
-                robot_state['ram_usage'] = ram
-                robot_state['cpu_temp'] = temp
-                
-                # Log Data
-                perf_logger.log(fps, cpu, ram, temp)
-                
-                # Emit Stats
-                socketio.emit('system_stats', {
-                    'fps': round(fps, 1),
-                    'cpu': cpu,
-                    'ram': ram,
-                    'temp': temp,
-                    'logging': perf_logger.is_logging
-                })
-                
-                last_monitor_time = time.time()
+                    if isinstance(names, dict):
+                        cls_name = names.get(cls_id, str(cls_id))
+                    else:
+                        cls_name = names[cls_id] if 0 <= cls_id < len(names) else str(cls_id)
+                        
+                    new_results.append({
+                        "bbox": [int(b[0]), int(b[1]), int(b[2]), int(b[3])],
+                        "class": cls_name,
+                        "id": cls_id,
+                        "conf": conf_val
+                    })
 
-            frame = cv2.resize(frame, (640, 480))
-            
-            # --- Phase 1: Global Context (Every 30 frames) ---
-            if frame_count % 30 == 0:
-                # Async Phase 1: Offload to background task to prevent blocking
-                def run_phase1(img):
-                    try:
-                        scenes = phase1_model.predict(img)
-                        socketio.emit('phase1_result', scenes)
-                    except Exception as e:
-                        print(f"[ERR] Phase 1: {e}")
-                socketio.start_background_task(run_phase1, frame.copy())
-
+            # Update Shared State
             with detection_lock:
-                # Run if Index enabled OR Research active
-                index_enabled = detection_state["enabled"]
-                should_run_yolo = index_enabled or research_active
+                detection_state["last_results"] = new_results
+                detection_state["detections"] = [{"class": d["class"], "conf": d["conf"]} for d in new_results]
                 
-                last_results = detection_state.get("last_results", [])
+            socketio.emit('detection_results', detection_state["detections"])
 
-                # Performance: Only run YOLO every N frames (skip frames)
-                detect_interval = 3 
+            # Limit Inference FPS to avoid burning CPU (e.g. 15-20ms)
+            time.sleep(0.02)
+            
+            # ─── Phase 1 (Global Context) Inference ───
+            if research_active and phase1_model is not None:
+                # Run Phase 1 inference at a much slower rate (e.g. once per second)
+                # to not choke YOLO detection
+                now = time.time()
+                if now - last_frame_time > 1.0:
+                    last_frame_time = now
+                    p1_results = phase1_model.predict(frame)
+                    socketio.emit('phase1_result', p1_results)
+                    
+        except Exception as e:
+            print(f"[ERR] Inference thread: {e}")
+            time.sleep(0.1)
 
-                if should_run_yolo and YOLO_AVAILABLE:
-                    if frame_count % detect_interval == 0:
-                        if yolo_model:
-                            # Resize to 320 for speed
-                            # Use track() for better consistency if permitted, otherwise predict()
-                            # keeping predict() for now to ensure stability with frame skipping
-                            try:
-                                results = yolo_model.predict(frame, conf=detection_state["confidence"], verbose=False, imgsz=320)
-                                
-                                # Process results
-                                new_results = []
-                                r = results[0]
-                                names = r.names
-                                
-                                for box in r.boxes:
-                                    b = box.xyxy[0].cpu().numpy().astype(int)
-                                    cls_id = int(box.cls[0])
-                                    conf = float(box.conf[0])
-                                    
-                                    # Get class name
-                                    if isinstance(names, dict):
-                                        cls_name = names.get(cls_id, str(cls_id))
-                                    else:
-                                        cls_name = names[cls_id] if 0 <= cls_id < len(names) else str(cls_id)
-                                        
-                                    new_results.append({
-                                        "bbox": [int(b[0]), int(b[1]), int(b[2]), int(b[3])],
-                                        "class": cls_name,
-                                        "id": cls_id,
-                                        "conf": conf
-                                    })
+# ─── System Monitor & Main Logic Thread ───────────────────────────────────────
+def system_monitor_thread():
+    """Calculates FPS and monitors resources."""
+    monitoring_active = True
+    frame_counter = 0
+    start_time = time.time()
+    
+    while monitoring_active:
+        time.sleep(1.0)
+        
+        cpu = psutil.cpu_percent()
+        ram = psutil.virtual_memory().percent
+        temp = 0.0
+        try:
+            temps = psutil.sensors_temperatures()
+            if 'cpu_thermal' in temps: temp = temps['cpu_thermal'][0].current
+            elif 'coretemp' in temps: temp = temps['coretemp'][0].current
+        except: pass
+        
+        with state_lock:
+            fps = robot_state.get('fps', 0.0)
+            robot_state['cpu_usage'] = cpu
+            robot_state['ram_usage'] = ram
+            robot_state['cpu_temp'] = temp
+            
+        socketio.emit('system_stats', {
+            'fps': round(fps, 1),
+            'cpu': cpu, 
+            'ram': ram, 
+            'temp': temp
+        })
 
-                                # Update state SAFELY (outside try/except logic issues)
-                                detection_state["last_results"] = new_results
-                                detection_state["detections"] = [{"class": d["class"], "conf": d["conf"]} for d in new_results]
-                                
-                                socketio.emit('detection_results', detection_state["detections"])
-
-                            except Exception as e:
-                                print(f"[ERR] YOLO Inference/Parsing: {e}")
-                                # On error, keep old results or clear?
-                                # Keeping old results reduces flickering on transient errors
-                                pass
-             
-            # Create Output Frames
-            # 1. Raw Frame (Phase 1)
-            # 2. Research Frame (Always Annotated if Active)
-            # 3. Index Frame (Annotated only if Index Enabled)
-
-            frame_res = frame.copy()
-            frame_idx = frame.copy()
-
-            # Draw Overlay for Research (Always if active)
-            if research_active:
-                _draw_results(frame_res, last_results)
-                # Draw FPS
-                cv2.putText(frame_res, f"FPS: {fps:.1f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                if perf_logger.is_logging:
-                     cv2.circle(frame_res, (620, 20), 10, (0, 0, 255), -1) # REC indicator
-
-            # Draw Overlay for Index (Only if enabled)
-            if index_enabled:
-                _draw_results(frame_idx, last_results)
-
-            with frame_lock:
-                output_frame_raw = frame # Pure raw
-                output_frame_research = frame_res
-                output_frame_index = frame_idx
-                
-            time.sleep(0.01)
-    except Exception as e:
-        print(f"[WARN] Camera thread died: {e}")
+# Start Threads
+if CV2_AVAILABLE:
+    threading.Thread(target=camera_capture_thread, daemon=True).start()
+    threading.Thread(target=inference_thread, daemon=True).start()
+    threading.Thread(target=system_monitor_thread, daemon=True).start()
 
 def _class_color(cls_id):
     """Return a distinct BGR color for each class index."""
@@ -443,6 +485,7 @@ def _class_color(cls_id):
     return palette[cls_id % len(palette)]
 
 def _draw_results(img, results):
+    if not results: return
     for d in results:
         x1, y1, x2, y2 = d['bbox']
         color = _class_color(d.get('id', -1) if d.get('id', -1) > -1 else hash(d['class']) % 80)
@@ -451,48 +494,63 @@ def _draw_results(img, results):
         cv2.putText(img, label, (x1, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
 def generate_frames_index():
-    global output_frame_index
     if not CV2_AVAILABLE: return
     while True:
-        with frame_lock:
-            if output_frame_index is None:
-                time.sleep(0.05); continue
-            ok, jpeg = cv2.imencode('.jpg', output_frame_index, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            if not ok: continue
+        frame = frame_manager.get()
+        if frame is None:
+            time.sleep(0.05)
+            continue
+            
+        # Check if we need to draw overlays
+        with detection_lock:
+            results = detection_state.get("last_results", [])
+            enabled = detection_state["enabled"]
+            
+        if enabled and results:
+            _draw_results(frame, results)
+            
+        ok, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        if ok:
             frame_bytes = jpeg.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        time.sleep(0.033)
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
+        time.sleep(0.033) # Cap at ~30 FPS streaming
 
 def generate_frames_research():
-    global output_frame_research
     if not CV2_AVAILABLE: return
     while True:
-        with frame_lock:
-            if output_frame_research is None:
-                time.sleep(0.05); continue
-            ok, jpeg = cv2.imencode('.jpg', output_frame_research, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            if not ok: continue
+        frame = frame_manager.get()
+        if frame is None:
+            time.sleep(0.05)
+            continue
+            
+        # Always draw for research
+        with detection_lock:
+            results = detection_state.get("last_results", [])
+            
+        if results:
+            _draw_results(frame, results)
+            
+        ok, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        if ok:
             frame_bytes = jpeg.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
         time.sleep(0.033)
 
-
 def generate_frames_raw():
-    global output_frame_raw
-    print("[DEBUG] generate_frames_raw started")
-    if not CV2_AVAILABLE:
-        return
+    if not CV2_AVAILABLE: return
     while True:
-        with frame_lock:
-            if output_frame_raw is None:
-                # print("[DEBUG] Waiting for output_frame_raw...") # excessive log
-                time.sleep(0.05)
-                continue
-            ok, jpeg = cv2.imencode('.jpg', output_frame_raw, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            if not ok:
-                continue
+        frame = frame_manager.get()
+        if frame is None:
+            time.sleep(0.05)
+            continue
+            
+        ok, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        if ok:
             frame_bytes = jpeg.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
         time.sleep(0.033)
 
 
@@ -950,8 +1008,7 @@ def start_background_tasks():
         except Exception as e:
             print(f"[WARN] Servo init failed: {e}")
 
-    # Start background threads
-    threading.Thread(target=camera_thread, daemon=True).start()
+    # Start remaining background threads
     threading.Thread(target=sensor_thread, daemon=True).start()
     threading.Thread(target=status_broadcast_thread, daemon=True).start()
     print("=" * 50)

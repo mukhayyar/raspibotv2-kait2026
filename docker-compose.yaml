@@ -3,6 +3,8 @@ services:
     build: ./backend
     container_name: pens-kait-backend
     env_file: ./backend/.env
+    environment:
+      - CAMERA_TYPE=${CAMERA_TYPE:-AUTO}  # AUTO, CSI, or USB
     ports:
       - "5000:5000"
     volumes:

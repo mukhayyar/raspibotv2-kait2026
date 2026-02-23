@@ -1,9 +1,9 @@
-flask
+Flask<3.0.0
+Werkzeug<3.0.0
 flask-cors
 flask-socketio
 simple-websocket
 python-dotenv
-gunicorn
 eventlet
 opencv-python-headless
 numpy

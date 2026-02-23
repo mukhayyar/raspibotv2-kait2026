@@ -1,0 +1,18 @@
+[package]
+name = "backend_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.43", features = ["full"] }
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+socketioxide = { version = "0.16", features = ["state"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+image = "0.25"
+ort = { version = "2.0.0-rc.9", features = ["load-dynamic"] } # Use dynamic loading to avoid compilation
+opencv = "0.94" # Might fail if headers missing, but worth a try given C++ backend approach
