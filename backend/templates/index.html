@@ -144,10 +144,23 @@
 
         <!-- ═══ Camera Feed ═══ -->
         <section class="card camera-section">
-            <div class="card-title"><span class="icon">📷</span> Camera Feed</div>
-            <img class="camera-feed" src="/video_feed" alt="Camera Feed"
-                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="camera-feed-placeholder" style="display:none;">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <div><span class="icon">📷</span> Camera Feed</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="main-rtc-status" style="display:none; font-size:0.7rem; font-weight:700; color:#fbbf24;"></span>
+                    <button id="main-rtc-btn" onclick="toggleWebRTC('main','annotated')"
+                        style="padding:4px 10px; font-size:0.72rem; font-weight:700; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#94a3b8; cursor:pointer; transition:all .15s;">
+                        ⚡ WebRTC
+                    </button>
+                </div>
+            </div>
+            <div style="position:relative;">
+                <img id="main-mjpeg" class="camera-feed" src="/video_feed" alt="Camera Feed"
+                    onerror="this.style.display='none'; document.getElementById('main-cam-placeholder').style.display='flex';">
+                <video id="main-webrtc" autoplay playsinline muted
+                    style="display:none; width:100%; border-radius:8px; background:#000;"></video>
+            </div>
+            <div id="main-cam-placeholder" class="camera-feed-placeholder" style="display:none;">
                 📷 Camera unavailable
             </div>
         </section>
@@ -427,6 +440,125 @@
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+    (function () {
+        var STALL_TIMEOUT = 8000;
+        var CHECK_INTERVAL = 3000;
+        function watchStream(imgEl) {
+            if (!imgEl) return;
+            var baseSrc = imgEl.src.split('?')[0];
+            var lastLoad = Date.now();
+            var reconnecting = false;
+            imgEl.addEventListener('load', function () { lastLoad = Date.now(); reconnecting = false; });
+            imgEl.addEventListener('error', function () { if (!reconnecting) reconnect(); });
+            function reconnect() {
+                reconnecting = true;
+                console.warn('[StreamWatchdog] Reconnecting:', baseSrc);
+                imgEl.src = baseSrc + '?t=' + Date.now();
+            }
+            setInterval(function () {
+                if (!reconnecting && Date.now() - lastLoad > STALL_TIMEOUT) reconnect();
+            }, CHECK_INTERVAL);
+        }
+        document.querySelectorAll('img[src*="video_feed"]').forEach(watchStream);
+    })();
+    </script>
+
+    <!-- ── WebRTC ─────────────────────────────────────────────────────────── -->
+    <script>
+    (function () {
+        const STATUS_COLORS = {
+            connecting: '#fbbf24', connected: '#4ade80',
+            disconnected: '#94a3b8', failed: '#f87171', closed: '#94a3b8',
+        };
+        let _pc = null;
+
+        window.toggleWebRTC = function (prefix, mode) {
+            if (_pc) disconnectWebRTC(prefix);
+            else connectWebRTC(prefix, mode);
+        };
+
+        async function connectWebRTC(prefix, mode) {
+            const img    = document.getElementById(prefix + '-mjpeg');
+            const video  = document.getElementById(prefix + '-webrtc');
+            const btn    = document.getElementById(prefix + '-rtc-btn');
+            const status = document.getElementById(prefix + '-rtc-status');
+
+            status.textContent = 'Connecting…';
+            status.style.color = STATUS_COLORS.connecting;
+            status.style.display = 'inline';
+            btn.style.opacity = '0.6';
+
+            _pc = new RTCPeerConnection({ iceServers: [] });
+            _pc.addTransceiver('video', { direction: 'recvonly' });
+
+            _pc.ontrack = (e) => {
+                video.srcObject = e.streams[0];
+                video.play().catch(err => console.warn('[WebRTC] autoplay blocked:', err));
+            };
+
+            _pc.onconnectionstatechange = () => {
+                const s = _pc.connectionState;
+                status.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+                status.style.color = STATUS_COLORS[s] || '#94a3b8';
+                if (s === 'connected') {
+                    img.style.display   = 'none';
+                    video.style.display = 'block';
+                    video.play().catch(err => console.warn('[WebRTC] play:', err));
+                    btn.textContent     = '📡 MJPEG';
+                    btn.style.color     = '#4ade80';
+                    btn.style.opacity   = '1';
+                } else if (s === 'failed' || s === 'closed') {
+                    setTimeout(() => disconnectWebRTC(prefix), 1500);
+                }
+            };
+
+            try {
+                const offer = await _pc.createOffer();
+                await _pc.setLocalDescription(offer);
+                const res  = await fetch('/webrtc/offer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sdp: offer.sdp, type: offer.type, mode }),
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                await _pc.setRemoteDescription(new RTCSessionDescription(data));
+            } catch (err) {
+                console.error('[WebRTC]', err);
+                status.textContent = 'Failed';
+                status.style.color = STATUS_COLORS.failed;
+                btn.style.opacity  = '1';
+                setTimeout(() => disconnectWebRTC(prefix), 3000);
+            }
+        }
+
+        function disconnectWebRTC(prefix) {
+            try { if (_pc) _pc.close(); } catch (_) {}
+            _pc = null;
+            const img    = document.getElementById(prefix + '-mjpeg');
+            const video  = document.getElementById(prefix + '-webrtc');
+            const btn    = document.getElementById(prefix + '-rtc-btn');
+            const status = document.getElementById(prefix + '-rtc-status');
+            if (video)  { video.style.display = 'none'; video.srcObject = null; }
+            if (img)    { img.style.display = 'block'; }
+            if (btn)    { btn.textContent = '⚡ WebRTC'; btn.style.color = '#94a3b8'; btn.style.opacity = '1'; }
+            if (status) { status.style.display = 'none'; }
+        }
+
+        fetch('/webrtc/status').then(r => r.json()).then(d => {
+            if (!d.available) {
+                const btn = document.getElementById('main-rtc-btn');
+                if (btn) {
+                    btn.title   = 'aiortc not installed — pip install aiortc';
+                    btn.style.opacity = '0.35';
+                    btn.style.cursor  = 'not-allowed';
+                    btn.onclick = null;
+                }
+            }
+        }).catch(() => {});
+    })();
+    </script>
 </body>
 
 </html>

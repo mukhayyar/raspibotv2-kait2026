@@ -1,0 +1,43 @@
+flowchart TD
+    CAM["📷 Camera Frame\n(640×640 px)"]
+
+    subgraph P1["Phase 1 — Scene Recognition (1 Hz)"]
+        P1_RESIZE["Resize → 224×224"]
+        P1_DNN["GoogLeNet Places365\n(Caffe / OpenCV DNN)"]
+        P1_OUT["Top-5 Scene Predictions\n(e.g. kitchen: 0.82)"]
+        P1_STABLE{"Stable for N\nconsecutive frames?"}
+    end
+
+    subgraph P2["Phase 2 — Context-Aware Detection"]
+        DB_LOOKUP["ContextManager.get_context_for_scene()\nvocabulary: COCO-80 | Objects365"]
+        subgraph MODE["Switch Mode"]
+            M_CLASS["classes mode\nset_classes(target_list)\n~5–20 ms"]
+            M_MODEL["model mode\nLoad model file\n~200–500 ms"]
+        end
+        YOLO["YOLOWorld v2\nInference\n(yolov8s-worldv2.pt)"]
+        RESULTS["Detection Results\n[{class, confidence, bbox}]"]
+    end
+
+    subgraph ALERT["Alert Rules Engine"]
+        RULES["Evaluate Rules\n(class_count ≥ threshold)"]
+        ACTION["Execute Action\n(LED / Buzzer pattern)"]
+    end
+
+    EMIT["Socket.IO Broadcast\ndetection_results\nphase2_timing"]
+
+    CAM --> P1_RESIZE
+    P1_RESIZE --> P1_DNN
+    P1_DNN --> P1_OUT
+    P1_OUT --> P1_STABLE
+    P1_STABLE -->|"No — keep\ncurrent classes"| YOLO
+    P1_STABLE -->|"Yes — trigger\nPhase 2 switch"| DB_LOOKUP
+    DB_LOOKUP --> M_CLASS
+    DB_LOOKUP --> M_MODEL
+    M_CLASS --> YOLO
+    M_MODEL --> YOLO
+    CAM --> YOLO
+    YOLO --> RESULTS
+    RESULTS --> RULES
+    RULES -->|"Triggered"| ACTION
+    RESULTS --> EMIT
+    ACTION --> EMIT

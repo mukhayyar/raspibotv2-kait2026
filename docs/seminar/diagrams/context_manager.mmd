@@ -1,0 +1,44 @@
+erDiagram
+    SCENE_CONTEXT {
+        int id PK
+        text scene_name UK
+        text yolo_classes
+        text model_file
+    }
+    SCENE_CONTEXT_OBJECTS365 {
+        int id PK
+        text scene_name UK
+        text yolo_classes
+        text model_file
+    }
+    INFERENCE_HISTORY {
+        int id PK
+        text switch_id UK
+        text ts
+        text scene
+        text mode
+        int num_classes
+        real db_query_ms
+        real switch_ms
+        real total_ms
+    }
+    PHASE1_HISTORY {
+        int id PK
+        text infer_id UK
+        text ts
+        text scene
+        real confidence
+        real inference_ms
+    }
+    ACCESS_LOG {
+        int id PK
+        text timestamp
+        text event
+        text client_ip
+        text session_id
+        text details
+    }
+
+    SCENE_CONTEXT ||--o{ INFERENCE_HISTORY : "scene_name lookup"
+    SCENE_CONTEXT_OBJECTS365 ||--o{ INFERENCE_HISTORY : "scene_name lookup"
+    PHASE1_HISTORY ||--o| INFERENCE_HISTORY : "triggers"

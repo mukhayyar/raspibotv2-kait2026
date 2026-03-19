@@ -23,10 +23,8 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
-            height: 100vh;
+            min-height: 100vh;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
         }
 
         header {
@@ -53,9 +51,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
-            flex: 1;
-            min-height: 0;
-            /* allows overflow scroll if needed */
         }
 
         .panel {
@@ -90,21 +85,28 @@
         }
 
         .video-container {
-            flex: 1;
             background: #000;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 300px;
+            width: 100%;
+            aspect-ratio: 16 / 9;
         }
 
-        img {
+        .video-container img,
+        .video-container video {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: contain;
+            display: block;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
         }
 
         .info-box {
@@ -178,160 +180,455 @@
 
     <header>
         <div>
-            <h1>Two-Phase Context Recognition</h1>
-            <div class="subtitle">Adaptive Hierarchical Detection Framework • Student: Muhammad Tsaqif Mukhayyar</div>
+            <h1 data-i18n="page-title">Two-Phase Context Recognition</h1>
+            <div class="subtitle" data-i18n="page-subtitle">Adaptive Hierarchical Detection Framework • Student: Muhammad Tsaqif Mukhayyar</div>
         </div>
-        <div>
+        <div style="display:flex; align-items:center; gap:14px;">
+            <a href="/research-log"
+                style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); color:#4ade80;
+                       padding:5px 13px; border-radius:6px; font-size:0.78rem; cursor:pointer;
+                       text-decoration:none; font-family:inherit; transition:all .15s;">🗂 Inference Log</a>
+            <button id="lang-toggle" onclick="toggleLang()"
+                style="background:rgba(255,255,255,0.07); border:1px solid var(--border); color:var(--text-sub);
+                       padding:5px 13px; border-radius:6px; font-size:0.78rem; cursor:pointer;
+                       transition:all .15s; font-family:inherit;">🌐 日本語</button>
             <span class="status-pill"></span> <span id="conn-status">Connected</span>
         </div>
     </header>
 
-    <div class="main-grid">
-        <!-- Phase 1 Panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Phase 1: Global Context</div>
-                <div class="badge">GoogLeNet Places365</div>
-            </div>
-            <div class="video-container">
-                <img src="/video_feed_raw" alt="Phase 1 Feed">
-                <div
-                    style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">
-                    Raw Input
-                </div>
-            </div>
-            <div class="info-box">
-                <div style="margin-bottom:8px; color:var(--text-sub);">Top Predicted Scenes:</div>
-                <ul class="scene-list" id="scene-predictions" style="list-style:none; padding:0; margin:0;">
-                    <li>Waiting for data...</li>
-                </ul>
-            </div>
-            <div class="controls">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <label class="switch-label">Mode:</label>
-                    <select id="transition-mode">
-                        <option value="auto">Auto-Transition</option>
-                        <option value="manual">Manual</option>
-                    </select>
-                </div>
-            </div>
+    <!-- ═══ ROW 1: Phase 1 — full width ═══════════════════════════════════════ -->
+    <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-header">
+            <div class="panel-title" data-i18n="p1-title">Phase 1: Global Scene Recognition</div>
+            <div class="badge">GoogLeNet · Places365</div>
         </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+            <!-- Left: camera feed -->
+            <div>
+                <div class="video-container">
+                    <img id="p1-mjpeg" src="/video_feed_raw" alt="Phase 1 Feed">
+                    <video id="p1-webrtc" autoplay playsinline muted
+                        style="display:none;"></video>
+                    <div data-i18n="raw-input" style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">Raw Input</div>
+                    <button id="p1-rtc-btn" onclick="toggleWebRTC('p1','raw')"
+                        style="position:absolute; bottom:8px; right:8px; padding:4px 10px; font-size:0.7rem; font-weight:700; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.55); color:#94a3b8; cursor:pointer; backdrop-filter:blur(4px); transition:all .15s;">
+                        ⚡ WebRTC
+                    </button>
+                    <div id="p1-rtc-status" style="display:none; position:absolute; bottom:8px; left:8px; padding:3px 8px; border-radius:6px; font-size:0.68rem; font-weight:700; background:rgba(0,0,0,0.6); color:#fbbf24;"></div>
+                </div>
+            </div>
+            <!-- Right: predictions + history + controls -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div class="info-box">
+                    <div data-i18n="top-scenes" style="margin-bottom:8px; color:var(--text-sub);">Top Predicted Scenes:</div>
+                    <ul class="scene-list" id="scene-predictions" style="list-style:none; padding:0; margin:0;">
+                        <li>Waiting for data...</li>
+                    </ul>
+                </div>
+                <div class="controls">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label class="switch-label" data-i18n="mode-label">Mode:</label>
+                        <select id="transition-mode">
+                            <option value="auto">Auto-Transition</option>
+                            <option value="manual">Manual</option>
+                        </select>
+                    </div>
+                </div>
 
-        <!-- Phase 2 Panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Phase 2: Adaptive Detail</div>
-                <div class="badge">YOLOv8s-WorldV2</div>
-            </div>
-            <div class="video-container">
-                <img src="/video_feed_research" alt="Phase 2 Feed">
-                <div
-                    style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">
-                    Augmented
+                <!-- Interactive Scene Browser (all Places365 scenes) -->
+                <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(59,130,246,0.2); border-radius:10px; padding:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div data-i18n="scene-browser-title" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#60a5fa;">🗺 Scene Browser</div>
+                        <span id="scene-browser-count" style="font-size:0.65rem; color:var(--text-sub);"></span>
+                    </div>
+                    <input id="scene-search" type="text" placeholder="Search 365 scenes..."
+                        style="width:100%; box-sizing:border-box; background:var(--bg-color); border:1px solid var(--border); color:white; padding:6px 10px; border-radius:6px; font-size:0.78rem; margin-bottom:8px; outline:none;"
+                        oninput="filterScenes(this.value)">
+                    <div id="scene-active-label" style="font-size:0.7rem; color:var(--text-sub); margin-bottom:6px; display:none;">
+                        <span data-i18n="scene-active">Active:</span> <strong id="scene-active-name" style="color:#60a5fa;"></strong>
+                    </div>
+                    <div id="scene-chips" style="display:flex; flex-wrap:wrap; gap:4px; max-height:150px; overflow-y:auto; padding-right:2px;"></div>
+                    <div id="scene-browser-loading" style="font-size:0.72rem; color:var(--text-sub); font-style:italic; text-align:center; padding:8px 0;">Loading scenes…</div>
                 </div>
-            </div>
-            <div class="info-box">
-                <div style="margin-bottom:8px; color:var(--text-sub);">Current Context (YOLO Classes):</div>
-                <div id="current-context" style="color:var(--accent); font-weight:bold; margin-bottom:10px;">
-                    Checking...
-                </div>
-                <div
-                    style="margin-bottom:8px; color:var(--text-sub); border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
-                    Detected Objects:</div>
-                <div id="detected-objects">
-                    -
-                </div>
-            </div>
-            <div class="controls">
-                <select id="manual-scene-select">
-                    <option value="" disabled selected>Select Scene...</option>
-                    <option value="living_room">Living Room</option>
-                    <option value="kitchen">Kitchen</option>
-                    <option value="bedroom">Bedroom</option>
-                    <option value="office">Office</option>
-                    <option value="street">Street</option>
-                    <option value="park">Park</option>
-                </select>
-                <button class="secondary" onclick="setManualScene()">Set Scene</button>
-            </div>
 
-            <!-- Keyboard Control Hint -->
-            <div
-                style="margin-top:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; font-size:0.8rem; color:var(--text-sub); display:flex; align-items:center; gap:10px;">
-                <div style="font-size:1.2rem;">⌨️</div>
-                <div>
-                    <strong style="color:var(--text-main);">Camera Control:</strong> <br>
-                    Use <span
-                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">WASD</span>
-                    or <span
-                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Arrow
-                        Keys</span> to Move.<br>
-                    Press <span
-                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Space</span>
-                    or <span
-                        style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Enter</span>
-                    to Center.
+                <!-- Phase 1 Inference History -->
+                <div id="p1-history-box" style="background:rgba(0,0,0,0.25); border:1px solid rgba(180,130,255,0.2); border-radius:10px; padding:12px; font-size:0.78rem;">
+                    <div data-i18n="p1-hist-title" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#c084fc; margin-bottom:8px;">🧠 Phase 1 Inference History</div>
+                    <div id="p1-history-empty" style="color:var(--text-sub); font-style:italic; text-align:center; padding:6px 0;">Waiting for first prediction…</div>
+                    <div id="p1-history-content" style="display:none;">
+                        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:3px; margin-bottom:4px; font-size:0.65rem; color:var(--text-sub); font-weight:700; text-transform:uppercase; letter-spacing:.4px;">
+                            <div>Scene</div><div style="text-align:right;">Conf</div><div style="text-align:right;">Ms</div>
+                        </div>
+                        <div id="p1-history-rows" style="display:flex; flex-direction:column; gap:2px; max-height:140px; overflow-y:auto;"></div>
+                        <div id="p1-history-avg" style="margin-top:6px; border-top:1px solid rgba(255,255,255,0.07); padding-top:6px; font-size:0.68rem; color:var(--text-sub);"></div>
+                    </div>
                 </div>
-            </div>
-
-            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
-                <button onclick="openManageModal()"
-                    style="width:100%; background:var(--panel-bg); border:1px solid var(--accent); color:var(--accent);">
-                    ⚙️ Manage Contexts & Models
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal -->
-    <div id="manage-modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
-        <div
-            style="background:var(--bg-color); width:80%; max-width:800px; max-height:90vh; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
-            <div
-                style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
-                <h2 style="margin:0;">Manage Scenes</h2>
-                <button onclick="closeManageModal()" class="secondary">✕</button>
-            </div>
-            <div style="padding:20px; overflow-y:auto; flex:1;">
-                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-                    <thead style="background:var(--panel-bg); text-align:left;">
-                        <tr>
-                            <th style="padding:10px;">Scene Name</th>
-                            <th style="padding:10px;">Model File</th>
-                            <th style="padding:10px;">Classes (Count)</th>
-                            <th style="padding:10px;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="context-table-body">
-                        <!-- Loaded dynamically -->
-                    </tbody>
-                </table>
+    <!-- ═══ ROW 2: Phase 2 — 2-column comparison ═══════════════════════════════ -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
 
-                <div style="margin-top:20px; background:var(--panel-bg); padding:15px; border-radius:8px;">
-                    <h3 style="margin-top:0;">Add / Edit Scene</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <!-- ── Phase 2A: YOLOv8s-WorldV2 (dynamic classes) ── -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title" data-i18n="p2a-title">Phase 2A: YOLOv8s-WorldV2</div>
+                <div class="badge" id="p2-model-badge">Dynamic Classes</div>
+            </div>
+
+            <div class="video-container">
+                <img id="p2-mjpeg" src="/video_feed_research" alt="Phase 2 Feed">
+                <video id="p2-webrtc" autoplay playsinline muted
+                    style="display:none;"></video>
+                <div data-i18n="aug-output" style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">Augmented Output</div>
+                <div id="p2-mode-overlay"
+                    style="position:absolute; top:10px; right:10px; background:rgba(59,130,246,0.85); padding:3px 8px; border-radius:12px; font-size:0.7rem; font-weight:700; color:#fff;">
+                    CLASSES
+                </div>
+                <button id="p2-rtc-btn" onclick="toggleWebRTC('p2','annotated')"
+                    style="position:absolute; bottom:8px; right:8px; padding:4px 10px; font-size:0.7rem; font-weight:700; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.55); color:#94a3b8; cursor:pointer; backdrop-filter:blur(4px); transition:all .15s;">
+                    ⚡ WebRTC
+                </button>
+                <div id="p2-rtc-status" style="display:none; position:absolute; bottom:8px; left:8px; padding:3px 8px; border-radius:6px; font-size:0.68rem; font-weight:700; background:rgba(0,0,0,0.6); color:#fbbf24;"></div>
+            </div>
+
+            <!-- Context + objects -->
+            <div class="info-box">
+                <div style="margin-bottom:8px; color:var(--text-sub);" id="p2-context-label">Current Context (YOLO Classes):</div>
+                <div id="current-context" style="color:var(--accent); font-weight:bold; margin-bottom:10px;">Checking...</div>
+                <div data-i18n="detected-lbl" style="margin-bottom:8px; color:var(--text-sub); border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">Detected Objects:</div>
+                <div id="detected-objects">-</div>
+            </div>
+
+            <!-- Phase 2 Switch Latency -->
+            <div id="p2-timing-box" style="margin-top:12px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; font-size:0.78rem;">
+                <div data-i18n="switch-latency" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-sub); margin-bottom:8px;">⏱ Context Switch Latency</div>
+                <div id="p2-timing-empty" style="color:var(--text-sub); font-style:italic; text-align:center; padding:6px 0;">Waiting for first scene switch…</div>
+                <div id="p2-timing-content" style="display:none;">
+                    <div style="margin-bottom:10px;">
+                        <div style="color:var(--text-sub); margin-bottom:4px; font-size:0.7rem;">Last switch — <span id="p2-timing-scene" style="color:var(--text-main); font-weight:600;"></span></div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                            <div style="background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.25); border-radius:7px; padding:6px; text-align:center;">
+                                <div style="font-size:0.68rem; color:var(--text-sub); margin-bottom:2px;">DB Query</div>
+                                <div id="p2-t-db" style="font-size:1.1rem; font-weight:700; color:#60a5fa;">—</div>
+                                <div style="font-size:0.6rem; color:var(--text-sub);">ms</div>
+                            </div>
+                            <div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:7px; padding:6px; text-align:center;">
+                                <div id="p2-t-switch-label" style="font-size:0.68rem; color:var(--text-sub); margin-bottom:2px;">set_classes()</div>
+                                <div id="p2-t-switch" style="font-size:1.1rem; font-weight:700; color:#34d399;">—</div>
+                                <div style="font-size:0.6rem; color:var(--text-sub);">ms</div>
+                            </div>
+                            <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.25); border-radius:7px; padding:6px; text-align:center;">
+                                <div style="font-size:0.68rem; color:var(--text-sub); margin-bottom:2px;">Total</div>
+                                <div id="p2-t-total" style="font-size:1.1rem; font-weight:700; color:#fbbf24;">—</div>
+                                <div style="font-size:0.6rem; color:var(--text-sub);">ms</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:5px; font-size:0.68rem; color:var(--text-sub);"><span id="p2-t-nclasses"></span></div>
+                    </div>
+                    <div style="border-top:1px solid rgba(255,255,255,0.07); padding-top:8px;">
+                        <div style="font-size:0.68rem; color:var(--text-sub); margin-bottom:5px;">History (last 10 switches)</div>
+                        <div id="p2-timing-history" style="display:flex; flex-direction:column; gap:3px; max-height:110px; overflow-y:auto;"></div>
+                    </div>
+                    <div id="p2-timing-avg" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.07); padding-top:8px; display:flex; gap:10px; font-size:0.7rem; color:var(--text-sub);"></div>
+                </div>
+            </div>
+
+            <!-- Phase 2 Mode + Vocabulary toggles -->
+            <div style="margin-top:12px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div data-i18n="switch-mode-hdr" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-sub); margin-bottom:8px;">Switch Mode</div>
+                <div style="display:flex; gap:6px;">
+                    <button id="p2-mode-classes" onclick="setPhase2Mode('classes')"
+                        style="flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; border:1px solid rgba(59,130,246,0.5); background:rgba(59,130,246,0.18); color:#60a5fa; transition:all .15s;">
+                        🎯 Classes Mode
+                    </button>
+                    <button id="p2-mode-model" onclick="setPhase2Mode('model')"
+                        style="flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text-sub); transition:all .15s;">
+                        🔄 Model Mode
+                    </button>
+                </div>
+                <div id="p2-mode-desc" style="font-size:0.72rem; color:var(--text-sub); margin-top:8px; line-height:1.4;">
+                    <strong style="color:#60a5fa;">Classes Mode:</strong> Scene → DB lookup → call <code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px">set_classes()</code> on the current YOLOWorld model.
+                </div>
+            </div>
+            <div style="margin-top:10px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div data-i18n="vocab-hdr" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-sub); margin-bottom:8px;">Context Vocabulary</div>
+                <div style="display:flex; gap:6px;">
+                    <button id="vocab-coco80" onclick="setContextVocab('coco80')"
+                        style="flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; border:1px solid rgba(34,197,94,0.5); background:rgba(34,197,94,0.18); color:#4ade80; transition:all .15s;">
+                        COCO 80
+                    </button>
+                    <button id="vocab-objects365" onclick="setContextVocab('objects365')"
+                        style="flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text-sub); transition:all .15s;">
+                        Objects365
+                    </button>
+                </div>
+                <div id="vocab-desc" style="font-size:0.72rem; color:var(--text-sub); margin-top:8px; line-height:1.4;">
+                    <strong style="color:#4ade80;">COCO 80:</strong> Standard 80-class vocabulary for YOLOWorld. Compact and fast.
+                </div>
+            </div>
+
+            <!-- WorldV2 live speed stats -->
+            <div style="margin-top:10px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:10px; padding:12px;">
+                <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#60a5fa; margin-bottom:8px;" data-i18n="inf-speed">⚡ Inference Speed (live)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:8px;">
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-pre-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Pre</div>
+                        <div id="bench-pre-worldv2" style="font-size:1.05rem; font-weight:700; color:#a78bfa;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-inf-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Inference</div>
+                        <div id="bench-inf-worldv2" style="font-size:1.05rem; font-weight:700; color:#f87171;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-post-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Post</div>
+                        <div id="bench-post-worldv2" style="font-size:1.05rem; font-weight:700; color:#fbbf24;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-tot-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Total</div>
+                        <div id="bench-tot-worldv2" style="font-size:1.05rem; font-weight:700; color:#4ade80;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                </div>
+                <div id="bench-speed-str-worldv2" style="font-family:monospace; font-size:0.7rem; color:var(--text-sub); background:rgba(0,0,0,0.25); border-radius:5px; padding:6px 8px; margin-bottom:8px; line-height:1.5;">
+                    Speed: — ms preprocess, — ms inference, — ms postprocess
+                </div>
+                <div id="bench-avg-worldv2" style="font-size:0.72rem; color:var(--text-sub); margin-bottom:6px;">Avg (last 20): —</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-bottom:8px;">
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-det-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Detections</div>
+                        <div id="bench-det-worldv2" style="font-size:0.9rem; font-weight:700; color:#4ade80;">—</div>
+                    </div>
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-conf-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Avg Conf</div>
+                        <div id="bench-conf-worldv2" style="font-size:0.9rem; font-weight:700; color:#fbbf24;">—</div>
+                    </div>
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-jitter-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Jitter σ</div>
+                        <div id="bench-jitter-worldv2" style="font-size:0.9rem; font-weight:700; color:#a78bfa;">—</div>
+                        <div style="font-size:0.5rem; color:var(--text-sub);">ms</div>
+                    </div>
+                </div>
+                <div id="bench-hist-worldv2" style="display:flex; flex-direction:column; gap:2px; max-height:80px; overflow-y:auto;"></div>
+            </div>
+
+            <!-- Keyboard hint -->
+            <div style="margin-top:12px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; font-size:0.8rem; color:var(--text-sub); display:flex; align-items:center; gap:10px;">
+                <div style="font-size:1.2rem;">⌨️</div>
+                <div>
+                    <strong style="color:var(--text-main);">Camera Control:</strong><br>
+                    <span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">WASD</span> /
+                    <span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Arrow Keys</span> to Move. &nbsp;
+                    <span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Space</span> /
+                    <span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">Enter</span> to Center.
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Phase 2B: YOLOv8s Base (COCO-80, fixed classes) ── -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title" data-i18n="p2b-title">Phase 2B: YOLOv8s Base</div>
+                <div class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">COCO-80 · Fixed Classes</div>
+            </div>
+
+            <!-- Video: base model annotated feed -->
+            <div class="video-container">
+                <img id="p2b-mjpeg" src="/video_feed_base" alt="Phase 2B Feed">
+                <div data-i18n="aug-base" style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:4px; font-size:0.8rem;">Augmented (Base)</div>
+                <div style="position:absolute; top:10px; right:10px; background:rgba(167,139,250,0.85); padding:3px 8px; border-radius:12px; font-size:0.7rem; font-weight:700; color:#fff;">
+                    COCO-80
+                </div>
+            </div>
+
+            <!-- Base model detected objects -->
+            <div class="info-box" style="margin-top:12px;">
+                <div data-i18n="detected-lbl" style="margin-bottom:8px; color:var(--text-sub);">Detected Objects:</div>
+                <div id="base-detected-objects" style="font-size:0.82rem; color:#a78bfa; line-height:1.6;">-</div>
+            </div>
+
+            <!-- Model info -->
+            <div class="info-box" style="margin-top:12px;">
+                <div data-i18n="model-hdr" style="font-size:0.75rem; font-weight:700; color:var(--text-sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px;">Model</div>
+                <div style="font-size:0.9rem; font-weight:600; color:#a78bfa; margin-bottom:6px;">yolov8s.pt</div>
+                <div style="font-size:0.75rem; color:var(--text-sub); line-height:1.5;">
+                    Standard detection model with <strong style="color:var(--text-main);">80 fixed COCO classes</strong>. Does not support <code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px">set_classes()</code> — class vocabulary is baked in at training time. Use this as the <strong style="color:var(--text-main);">speed baseline</strong> against YOLOWorld.
+                </div>
+            </div>
+
+            <div id="bench-base-unavailable" style="display:none; font-size:0.75rem; color:#f87171; margin:10px 0 0; padding:6px 10px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); border-radius:6px;">
+                <code>yolov8s.pt</code> not loaded on server — place it in <code>backend/models/</code> and restart.
+            </div>
+
+            <!-- Base model live speed stats -->
+            <div style="margin-top:12px; background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.18); border-radius:10px; padding:12px;">
+                <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#a78bfa; margin-bottom:8px;">⚡ Inference Speed (live)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:8px;">
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-pre-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Pre</div>
+                        <div id="bench-pre-base" style="font-size:1.05rem; font-weight:700; color:#a78bfa;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-inf-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Inference</div>
+                        <div id="bench-inf-base" style="font-size:1.05rem; font-weight:700; color:#f87171;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-post-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Post</div>
+                        <div id="bench-post-base" style="font-size:1.05rem; font-weight:700; color:#fbbf24;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div data-i18n="bench-tot-lbl" style="font-size:0.62rem; color:var(--text-sub); margin-bottom:2px;">Total</div>
+                        <div id="bench-tot-base" style="font-size:1.05rem; font-weight:700; color:#4ade80;">—</div>
+                        <div style="font-size:0.58rem; color:var(--text-sub);">ms</div>
+                    </div>
+                </div>
+                <div id="bench-speed-str-base" style="font-family:monospace; font-size:0.7rem; color:var(--text-sub); background:rgba(0,0,0,0.25); border-radius:5px; padding:6px 8px; margin-bottom:8px; line-height:1.5;">
+                    Speed: — ms preprocess, — ms inference, — ms postprocess
+                </div>
+                <div id="bench-avg-base" style="font-size:0.72rem; color:var(--text-sub); margin-bottom:6px;">Avg (last 20): —</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-bottom:8px;">
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-det-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Detections</div>
+                        <div id="bench-det-base" style="font-size:0.9rem; font-weight:700; color:#4ade80;">—</div>
+                    </div>
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-conf-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Avg Conf</div>
+                        <div id="bench-conf-base" style="font-size:0.9rem; font-weight:700; color:#fbbf24;">—</div>
+                    </div>
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); border-radius:5px; padding:4px;">
+                        <div data-i18n="bench-jitter-lbl" style="font-size:0.55rem; color:var(--text-sub); margin-bottom:1px;">Jitter σ</div>
+                        <div id="bench-jitter-base" style="font-size:0.9rem; font-weight:700; color:#a78bfa;">—</div>
+                        <div style="font-size:0.5rem; color:var(--text-sub);">ms</div>
+                    </div>
+                </div>
+                <div id="bench-hist-base" style="display:flex; flex-direction:column; gap:2px; max-height:80px; overflow-y:auto;"></div>
+            </div>
+
+            <!-- Side-by-side avg comparison -->
+            <div style="margin-top:12px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div data-i18n="cmp-title" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-sub); margin-bottom:10px;">📊 Avg Inference Comparison</div>
+                <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; font-size:0.8rem;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.65rem; color:#60a5fa; font-weight:700; margin-bottom:4px;">YOLOWorld</div>
+                        <div id="cmp-worldv2-inf" style="font-size:1.3rem; font-weight:700; color:var(--text-main);">—</div>
+                        <div data-i18n="ms-inf-lbl" style="font-size:0.6rem; color:var(--text-sub);">ms inference</div>
+                    </div>
+                    <div style="color:var(--text-sub); font-weight:700;">vs</div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.65rem; color:#a78bfa; font-weight:700; margin-bottom:4px;">Base YOLO</div>
+                        <div id="cmp-base-inf" style="font-size:1.3rem; font-weight:700; color:var(--text-main);">—</div>
+                        <div data-i18n="ms-inf-lbl" style="font-size:0.6rem; color:var(--text-sub);">ms inference</div>
+                    </div>
+                </div>
+                <div id="cmp-verdict" style="margin-top:10px; font-size:0.75rem; color:var(--text-sub); text-align:center; padding:6px; background:rgba(255,255,255,0.04); border-radius:6px;">
+                    Run both models to see comparison
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Detection Alerts Panel (full width below grid) -->
+    <div class="panel" style="margin-top:20px;">
+        <div class="panel-header">
+            <div class="panel-title" data-i18n="alerts-title">⚡ Detection Alerts</div>
+            <div class="badge" id="alerts-active-badge">0 active</div>
+        </div>
+        <div data-i18n="alerts-desc" style="color:var(--text-sub); font-size:0.82rem; margin-bottom:12px;">Trigger LED or buzzer actions when specific objects are detected.</div>
+
+        <!-- Rules list -->
+        <div id="alert-rules-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
+
+        <!-- Add rule form -->
+        <div id="alert-form-container">
+            <button id="alert-show-form-btn" onclick="toggleAlertForm(true)"
+                style="width:100%; padding:8px; background:rgba(59,130,246,0.1); border:1px dashed rgba(59,130,246,0.3); border-radius:8px; color:var(--accent); font-weight:600; font-size:0.82rem; cursor:pointer;">
+                + Add Alert Rule
+            </button>
+            <div id="alert-form" style="display:none; background:rgba(0,0,0,0.2); border:1px solid rgba(59,130,246,0.2); border-radius:10px; padding:14px; margin-top:8px;">
+                <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--text-sub); margin-bottom:10px;">New Alert Rule</div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color:var(--text-sub); margin-bottom:4px;">When class</label>
+                        <select id="alert-class" style="width:100%;">
+                            <option value="person">person</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color:var(--text-sub); margin-bottom:4px;">Count &ge;</label>
+                        <input type="number" id="alert-threshold" value="1" min="1" max="50"
+                            style="width:100%; padding:6px 8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="display:block; font-size:0.75rem; color:var(--text-sub); margin-bottom:4px;">Action</label>
+                    <select id="alert-action" onchange="onAlertActionChange()" style="width:100%;">
+                        <option value="led_color">LED Color</option>
+                        <option value="led_rgb">LED RGB</option>
+                        <option value="buzzer_on">Buzzer On</option>
+                        <option value="buzzer_pattern">Buzzer Pattern</option>
+                    </select>
+                </div>
+
+                <!-- LED Color params -->
+                <div id="params-led-color" style="margin-bottom:10px;">
+                    <label style="display:block; font-size:0.75rem; color:var(--text-sub); margin-bottom:6px;">Color</label>
+                    <div style="display:flex; gap:6px;" id="alert-color-dots"></div>
+                </div>
+
+                <!-- LED RGB params -->
+                <div id="params-led-rgb" style="display:none; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <label style="width:16px; font-size:0.75rem; color:#e74c3c;">R</label>
+                        <input type="range" id="alert-r" min="0" max="255" value="255" style="flex:1;">
+                        <span id="alert-r-val" style="font-size:0.75rem; color:var(--text-sub); min-width:28px; text-align:right;">255</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <label style="width:16px; font-size:0.75rem; color:#2ecc71;">G</label>
+                        <input type="range" id="alert-g" min="0" max="255" value="0" style="flex:1;">
+                        <span id="alert-g-val" style="font-size:0.75rem; color:var(--text-sub); min-width:28px; text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <label style="width:16px; font-size:0.75rem; color:#3498db;">B</label>
+                        <input type="range" id="alert-b" min="0" max="255" value="0" style="flex:1;">
+                        <span id="alert-b-val" style="font-size:0.75rem; color:var(--text-sub); min-width:28px; text-align:right;">0</span>
+                    </div>
+                    <div id="alert-rgb-preview" style="height:14px; border-radius:4px; background:rgb(255,0,0); border:1px solid rgba(255,255,255,0.1);"></div>
+                </div>
+
+                <!-- Buzzer pattern params -->
+                <div id="params-buzzer-pattern" style="display:none; margin-bottom:10px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
                         <div>
-                            <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Scene Name</label>
-                            <input type="text" id="edit-name"
-                                style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
+                            <label style="display:block; font-size:0.7rem; color:var(--text-sub); margin-bottom:4px;">On (ms)</label>
+                            <input type="number" id="alert-on-ms" value="200" min="50" max="2000" step="50"
+                                style="width:100%; padding:5px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
                         </div>
                         <div>
-                            <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Model Filename (in
-                                /models/)</label>
-                            <input type="text" id="edit-model" value="yolov8s-worldv2.pt"
-                                style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
+                            <label style="display:block; font-size:0.7rem; color:var(--text-sub); margin-bottom:4px;">Off (ms)</label>
+                            <input type="number" id="alert-off-ms" value="200" min="50" max="2000" step="50"
+                                style="width:100%; padding:5px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.7rem; color:var(--text-sub); margin-bottom:4px;">Repeats</label>
+                            <input type="number" id="alert-repeats" value="3" min="1" max="20"
+                                style="width:100%; padding:5px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;">
                         </div>
                     </div>
-                    <div style="margin-top:10px;">
-                        <label style="display:block; margin-bottom:5px; font-size:0.8rem;">YOLO Classes (comma
-                            separated)</label>
-                        <textarea id="edit-classes" rows="3"
-                            style="width:100%; padding:8px; background:var(--bg-color); border:1px solid var(--border); color:white; border-radius:4px;"></textarea>
-                    </div>
-                    <div style="margin-top:10px; text-align:right;">
-                        <button onclick="saveContext()">Save Context</button>
-                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button onclick="addAlertRule()" style="flex:1;">Add Rule</button>
+                    <button class="secondary" onclick="toggleAlertForm(false)">Cancel</button>
                 </div>
             </div>
         </div>
@@ -420,6 +717,108 @@
                 display: block;
             }
         }
+
+        /* ─── Alert Rules ─── */
+        .alert-rule-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            transition: all 0.25s;
+        }
+        .alert-rule-row.fired {
+            background: rgba(231,76,60,0.12);
+            border-color: rgba(231,76,60,0.35);
+            box-shadow: 0 0 14px rgba(231,76,60,0.15);
+        }
+        .alert-rule-row.disabled { opacity: 0.4; }
+
+        .alert-dot {
+            display: inline-block;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .alert-dot.active {
+            background: #e74c3c;
+            box-shadow: 0 0 12px rgba(231,76,60,0.8);
+            animation: alert-pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes alert-pulse {
+            0%, 100% { box-shadow: 0 0 6px rgba(231,76,60,0.5); }
+            50% { box-shadow: 0 0 18px rgba(231,76,60,0.95); }
+        }
+        .alert-rule-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            overflow: hidden;
+        }
+        .alert-rule-class { font-weight: 700; color: var(--accent); }
+        .alert-rule-op, .alert-rule-arrow { color: var(--text-sub); font-size: 0.75rem; }
+        .alert-rule-action { color: var(--text-main); font-size: 0.78rem; }
+
+        .alert-toggle { position:relative; display:inline-block; width:34px; height:18px; }
+        .alert-toggle input { opacity:0; width:0; height:0; }
+        .alert-toggle-slider {
+            position:absolute; cursor:pointer; inset:0;
+            background:rgba(255,255,255,0.15); border-radius:18px;
+            transition: .2s;
+        }
+        .alert-toggle-slider:before {
+            content:""; position:absolute; height:14px; width:14px;
+            left:2px; bottom:2px; background:#fff; border-radius:50%;
+            transition: .2s;
+        }
+        .alert-toggle input:checked + .alert-toggle-slider { background: var(--accent); }
+        .alert-toggle input:checked + .alert-toggle-slider:before { transform: translateX(16px); }
+
+        .alert-delete-btn {
+            background:none; border:none; color:var(--text-sub);
+            font-size:1.2rem; cursor:pointer; padding:0 4px; line-height:1;
+            transition: color 0.15s;
+        }
+        .alert-delete-btn:hover { color: #e74c3c; }
+
+        .alert-color-swatch {
+            display:inline-block; width:24px; height:24px; border-radius:50%;
+            border:2px solid transparent; cursor:pointer; transition: all 0.15s;
+        }
+        .alert-color-swatch:hover { transform: scale(1.15); }
+        .alert-color-swatch.selected { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+
+        /* Scene browser chips */
+        .scene-chip {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 0.68rem;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-sub);
+            transition: all 0.12s;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .scene-chip:hover {
+            background: rgba(59,130,246,0.15);
+            border-color: rgba(59,130,246,0.4);
+            color: var(--text-main);
+        }
+        .scene-chip.active {
+            background: rgba(59,130,246,0.28);
+            border-color: rgba(59,130,246,0.7);
+            color: #93c5fd;
+            font-weight: 700;
+        }
     </style>
 
     <!-- Mobile Servo D-Pad -->
@@ -464,7 +863,11 @@
                  box-shadow:0 8px 32px rgba(0,0,0,0.5);">
 
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <div class="badge" id="fps-display">FPS: --</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <div class="badge" id="fps-display">Cam FPS: --</div>
+                    <div class="badge" id="infer-fps-display" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); color:#34d399;">Infer FPS: --</div>
+                    <div class="badge" id="phase1-ms-display" style="background:rgba(180,130,255,0.12); border-color:rgba(180,130,255,0.3); color:#c084fc;">P1 Scene: -- ms</div>
+                </div>
                 <div class="badge" id="cpu-temp-display">Temp: --°C</div>
             </div>
 
@@ -573,8 +976,10 @@
 
         socket.on('system_stats', (data) => {
             // Update Text
-            elFps.innerText = `FPS: ${data.fps}`;
-            document.getElementById('mini-status').innerText = `FPS: ${data.fps}`;
+            elFps.innerText = `Cam FPS: ${data.fps}`;
+            document.getElementById('infer-fps-display').innerText = `Infer FPS: ${data.infer_fps ?? '--'}`;
+            document.getElementById('phase1-ms-display').innerText = `P1 Scene: ${data.phase1_ms != null ? data.phase1_ms + ' ms' : '--'}`;
+            document.getElementById('mini-status').innerText = `Cam: ${data.fps} | Infer: ${data.infer_fps ?? '--'} | P1: ${data.phase1_ms != null ? data.phase1_ms + 'ms' : '--'}`;
             elTemp.innerText = `Temp: ${data.temp}°C`;
             elCpu.innerText = `${data.cpu}%`;
             elRam.innerText = `${data.ram}%`;
@@ -626,6 +1031,8 @@
             socket.emit('join_research');
             // Initial detection config check
             socket.emit('detection_status');
+            // Load scene browser
+            _loadSceneBrowser();
         });
 
         window.addEventListener('beforeunload', () => {
@@ -665,105 +1072,267 @@
 
         socket.on('context_switched', (data) => {
             console.log("Context switched:", data);
-            lastScene = data.scene; // Sync state
-            // UI updates via detection_state usually, but we can animate/notify here if needed
+            lastScene    = data.scene;
+            _activeScene = data.scene || '';
+            const lbl = document.getElementById('scene-active-label');
+            const nm  = document.getElementById('scene-active-name');
+            if (lbl && _activeScene) lbl.style.display = 'block';
+            if (nm)  nm.textContent = _activeScene.replace(/_/g, ' ');
+            const f = document.getElementById('scene-search');
+            _renderSceneChips(f ? f.value : '');
+        });
+
+        // ── Phase 2 timing display ──────────────────────────────────────────
+        // ── Phase 1 inference history ───────────────────────────────────────
+        var _p1History = [];        // newest-first, max 50
+        var _p1SeenIds = new Set(); // idempotency
+
+        function _p1AddRecord(raw, prepend) {
+            var d = {
+                infer_id:     raw.infer_id || '',
+                scene:        raw.scene || '',
+                confidence:   parseFloat(raw.confidence || 0),
+                inference_ms: parseFloat(raw.inference_ms || 0),
+            };
+            if (d.infer_id && _p1SeenIds.has(d.infer_id)) return;
+            if (d.infer_id) _p1SeenIds.add(d.infer_id);
+            if (prepend) _p1History.unshift(d);
+            else         _p1History.push(d);
+            if (_p1History.length > 50) _p1History.pop();
+        }
+
+        function _p1Redraw(latest) {
+            document.getElementById('p1-history-empty').style.display   = 'none';
+            document.getElementById('p1-history-content').style.display = 'block';
+            var display = _p1History.slice(0, 15);
+            document.getElementById('p1-history-rows').innerHTML = display.map(function(h) {
+                var conf_pct = Math.round(h.confidence * 100);
+                var ms_clr = h.inference_ms < 150 ? '#34d399' : h.inference_ms < 300 ? '#fbbf24' : '#f87171';
+                return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:3px;padding:2px 4px;border-radius:4px;background:rgba(255,255,255,0.03);">' +
+                    '<div style="font-size:0.68rem;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + h.scene + '</div>' +
+                    '<div style="font-size:0.68rem;color:#a78bfa;text-align:right;">' + conf_pct + '%</div>' +
+                    '<div style="font-size:0.68rem;color:' + ms_clr + ';text-align:right;font-weight:600;">' + h.inference_ms.toFixed(0) + 'ms</div>' +
+                '</div>';
+            }).join('');
+            if (_p1History.length > 0) {
+                var n = _p1History.length;
+                var avgMs = _p1History.reduce(function(s,h){return s+h.inference_ms;},0) / n;
+                document.getElementById('p1-history-avg').innerHTML =
+                    'avg: <strong style="color:var(--text-main);">' + avgMs.toFixed(0) + ' ms</strong>' +
+                    '&nbsp;&nbsp;<span style="opacity:.5;">(' + n + ' records)</span>';
+            }
+        }
+
+        socket.on('phase1_timing', function(d) {
+            _p1AddRecord(d, true);
+            _p1Redraw(d);
+        });
+
+        var _p2TimingHistory = [];   // newest-first
+        var _p2SeenIds = new Set();  // idempotency: skip duplicate switch_ids
+
+        function _p2RenderEntry(d) {
+            // Normalise field names from both DB records (snake_case) and socket events
+            return {
+                switch_id:   d.switch_id || d.id || '',
+                scene:       d.scene || '',
+                mode:        d.mode || 'classes',
+                num_classes: d.num_classes || 0,
+                db_query_ms: parseFloat(d.db_query_ms || 0),
+                switch_ms:   parseFloat(d.switch_ms   || 0),
+                total_ms:    parseFloat(d.total_ms    || 0),
+            };
+        }
+
+        function _p2AddRecord(raw, prepend) {
+            var d = _p2RenderEntry(raw);
+            if (d.switch_id && _p2SeenIds.has(d.switch_id)) return; // idempotent
+            if (d.switch_id) _p2SeenIds.add(d.switch_id);
+            if (prepend) _p2TimingHistory.unshift(d);
+            else         _p2TimingHistory.push(d);
+            if (_p2TimingHistory.length > 50) _p2TimingHistory.pop();
+        }
+
+        function _p2Redraw(latest) {
+            document.getElementById('p2-timing-empty').style.display   = 'none';
+            document.getElementById('p2-timing-content').style.display = 'block';
+
+            // Top cards — latest record
+            var d = latest || _p2TimingHistory[0];
+            if (!d) return;
+            document.getElementById('p2-timing-scene').textContent  = d.scene;
+            document.getElementById('p2-t-db').textContent           = d.db_query_ms.toFixed(1);
+            document.getElementById('p2-t-switch').textContent       = d.switch_ms.toFixed(1);
+            document.getElementById('p2-t-total').textContent        = d.total_ms.toFixed(1);
+            document.getElementById('p2-t-nclasses').textContent     = d.num_classes + ' classes';
+            document.getElementById('p2-t-switch-label').textContent = d.mode === 'model' ? 'Model Load' : 'set_classes()';
+
+            // History rows — show db_query_ms and switch_ms separately
+            var display = _p2TimingHistory.slice(0, 10);
+            var switchLabel = display.length > 0 && display[0].mode === 'model' ? 'load' : 'set_classes';
+            document.getElementById('p2-timing-history').innerHTML = display.map(function(h) {
+                var maxMs      = Math.max(h.total_ms, 1);
+                var dbW        = Math.min(100, (h.db_query_ms / maxMs) * 100);
+                var swW        = Math.min(100 - dbW, (h.switch_ms / maxMs) * 100);
+                var swClr      = h.switch_ms < 100 ? '#34d399' : h.switch_ms < 1000 ? '#fbbf24' : '#f87171';
+                var lbl        = h.mode === 'model' ? 'load' : 'set_classes';
+                return '<div style="display:flex;align-items:center;gap:5px;">' +
+                    '<div style="width:82px;font-size:0.63rem;color:var(--text-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + h.scene + '">' + h.scene + '</div>' +
+                    '<div style="flex:1;background:rgba(255,255,255,0.06);border-radius:3px;height:5px;display:flex;overflow:hidden;">' +
+                        '<div style="width:' + dbW + '%;height:100%;background:#60a5fa;" title="DB: ' + h.db_query_ms.toFixed(1) + ' ms"></div>' +
+                        '<div style="width:' + swW + '%;height:100%;background:' + swClr + ';margin-left:1px;" title="' + lbl + ': ' + h.switch_ms.toFixed(0) + ' ms"></div>' +
+                    '</div>' +
+                    '<div style="font-size:0.62rem;color:#60a5fa;white-space:nowrap;">DB&nbsp;' + h.db_query_ms.toFixed(1) + '</div>' +
+                    '<div style="font-size:0.62rem;color:rgba(255,255,255,0.25);">|</div>' +
+                    '<div style="font-size:0.62rem;color:' + swClr + ';white-space:nowrap;font-weight:600;">' + lbl + '&nbsp;' + h.switch_ms.toFixed(0) + '</div>' +
+                    '<div style="font-size:0.58rem;color:rgba(255,255,255,0.3);white-space:nowrap;">ms</div>' +
+                '</div>';
+            }).join('');
+
+            // Rolling averages over all buffered records
+            var n = _p2TimingHistory.length;
+            var avgDB     = _p2TimingHistory.reduce(function(s,h){return s+h.db_query_ms;},0) / n;
+            var avgSwitch = _p2TimingHistory.reduce(function(s,h){return s+h.switch_ms;},0)   / n;
+            var avgTotal  = _p2TimingHistory.reduce(function(s,h){return s+h.total_ms;},0)    / n;
+            document.getElementById('p2-timing-avg').innerHTML =
+                'avg DB: <strong style="color:var(--text-main);">' + avgDB.toFixed(1) + ' ms</strong>' +
+                '&nbsp;&nbsp;avg ' + (d.mode==='model'?'load':'set_classes') + ': <strong style="color:var(--text-main);">' + avgSwitch.toFixed(1) + ' ms</strong>' +
+                '&nbsp;&nbsp;avg total: <strong style="color:var(--text-main);">' + avgTotal.toFixed(1) + ' ms</strong>' +
+                '&nbsp;&nbsp;<span style="opacity:.5;">(' + n + ' records)</span>';
+        }
+
+        // Live socket events
+        socket.on('phase2_timing', function(d) {
+            _p2AddRecord(d, true);
+            _p2Redraw(d);
+        });
+
+        // Load persisted history from DB on connect so all users start with full history
+        socket.on('connect', function() {
+            fetch('/api/inference-history?limit=50')
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    if (!data.records || !data.records.length) return;
+                    // API returns newest-first (ORDER BY id DESC); push keeps that order
+                    data.records.forEach(function(r) { _p2AddRecord(r, false); });
+                    _p2Redraw(null);
+                })
+                .catch(function(){});
+            fetch('/api/phase1-history?limit=50')
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    if (!data.records || !data.records.length) return;
+                    // API returns newest-first; push keeps that order
+                    data.records.forEach(function(r) { _p1AddRecord(r, false); });
+                    _p1Redraw(null);
+                })
+                .catch(function(){});
         });
 
         socket.on('detection_state', (data) => {
             // Update Current Context list
             if (data.classes && data.classes.length > 0) {
                 elContext.innerText = data.classes.join(', ');
+                // Also update alert class dropdown if it exists
+                if (typeof updateAlertClassDropdown === 'function') {
+                    updateAlertClassDropdown(data.classes);
+                }
             } else {
                 elContext.innerText = "Default / None";
             }
         });
 
-        socket.on('detection_results', (results) => {
-            // Update Detected Objects debug list in real-time
-            if (!results || results.length === 0) {
-                elObjects.innerText = "None";
-                return;
-            }
-            const counts = {};
-            results.forEach(d => {
-                counts[d.class] = (counts[d.class] || 0) + 1;
-            });
-            const txt = Object.entries(counts).map(([k, v]) => `${k} (${v})`).join(', ');
-            elObjects.innerText = txt;
+        // ── Phase 2 mode state ──────────────────────────────────────────────
+        socket.on('phase2_mode_state', (data) => {
+            applyPhase2ModeUI(data.mode);
         });
 
-        function setManualScene() {
-            const sel = document.getElementById('manual-scene-select');
-            const scene = sel.value;
-            if (scene) {
-                currentMode = 'manual'; // force manual mode so auto doesn't override immediately
-                elMode.value = 'manual';
-                socket.emit('set_scene', { scene: scene });
-            }
-        }
+        function applyPhase2ModeUI(mode) {
+            const btnClasses = document.getElementById('p2-mode-classes');
+            const btnModel   = document.getElementById('p2-mode-model');
+            const desc       = document.getElementById('p2-mode-desc');
+            const overlay    = document.getElementById('p2-mode-overlay');
+            const label      = document.getElementById('p2-context-label');
+            const badge      = document.getElementById('p2-model-badge');
 
-        // --- Management UI Functions ---
-        const modal = document.getElementById('manage-modal');
+            const activeStyle  = 'border:1px solid rgba(59,130,246,0.5); background:rgba(59,130,246,0.18); color:#60a5fa;';
+            const inactiveStyle = 'border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text-sub);';
 
-        function openManageModal() {
-            modal.style.display = 'flex';
-            socket.emit('get_all_contexts');
-        }
-
-        function closeManageModal() {
-            modal.style.display = 'none';
-        }
-
-        socket.on('all_contexts', (data) => {
-            const tbody = document.getElementById('context-table-body');
-            tbody.innerHTML = '';
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
-                tr.innerHTML = `
-                <td style="padding:10px;">${item.name}</td>
-                <td style="padding:10px; font-family:monospace; color:var(--accent);">${item.model || 'Default'}</td>
-                <td style="padding:10px;">${item.classes.length} classes</td>
-                <td style="padding:10px;">
-                    <button class="secondary" style="padding:4px 8px; font-size:0.8rem;" onclick='editContext(${JSON.stringify(item)})'>Edit</button>
-                </td>
-            `;
-                tbody.appendChild(tr);
-            });
-        });
-
-        function editContext(item) {
-            document.getElementById('edit-name').value = item.name;
-            document.getElementById('edit-model').value = item.model || 'yolov8s-worldv2.pt';
-            document.getElementById('edit-classes').value = item.classes.join(', ');
-        }
-
-        function saveContext() {
-            const name = document.getElementById('edit-name').value;
-            const model = document.getElementById('edit-model').value;
-            const classesStr = document.getElementById('edit-classes').value;
-
-            if (!name) return alert("Scene Name required");
-
-            const classes = classesStr.split(',').map(s => s.trim()).filter(s => s);
-
-            socket.emit('save_context', {
-                scene_name: name,
-                model_file: model,
-                classes: classes
-            });
-        }
-
-        socket.on('save_context_result', (res) => {
-            if (res.success) {
-                alert("Saved!");
-                // clear form
-                document.getElementById('edit-name').value = '';
-                document.getElementById('edit-classes').value = '';
+            if (mode === 'model') {
+                btnClasses.style.cssText = `flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; transition:all .15s; ${inactiveStyle}`;
+                btnModel.style.cssText   = `flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; transition:all .15s; border:1px solid rgba(245,158,11,0.5); background:rgba(245,158,11,0.15); color:#fbbf24;`;
+                desc.innerHTML = '<strong style="color:#fbbf24;">Model Mode:</strong> Scene → DB lookup → swap the entire YOLO model file (<code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px">model_file</code> column). Classes column is ignored.';
+                if (overlay) { overlay.textContent = 'MODEL'; overlay.style.background = 'rgba(245,158,11,0.85)'; }
+                if (label)   label.textContent = 'Current Model:';
+                if (badge)   badge.style.background = 'rgba(245,158,11,0.2)';
             } else {
-                alert("Error: " + res.error);
+                btnClasses.style.cssText = `flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; transition:all .15s; ${activeStyle}`;
+                btnModel.style.cssText   = `flex:1; padding:7px 10px; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; transition:all .15s; ${inactiveStyle}`;
+                desc.innerHTML = '<strong style="color:#60a5fa;">Classes Mode:</strong> Scene → DB lookup → call <code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px">set_classes()</code> on the current YOLOWorld model.';
+                if (overlay) { overlay.textContent = 'CLASSES'; overlay.style.background = 'rgba(59,130,246,0.85)'; }
+                if (label)   label.textContent = 'Current Context (YOLO Classes):';
+                if (badge)   badge.style.background = '';
             }
+        }
+
+        function setPhase2Mode(mode) {
+            socket.emit('set_phase2_mode', { mode });
+        }
+
+        // ── Context vocabulary ──────────────────────────────────────────────
+        function setContextVocab(vocab) {
+            socket.emit('set_context_vocab', { vocab });
+        }
+
+        function applyVocabUI(vocab) {
+            const isObj = vocab === 'objects365';
+            const btnCoco = document.getElementById('vocab-coco80');
+            const btnObj  = document.getElementById('vocab-objects365');
+            const desc    = document.getElementById('vocab-desc');
+            if (!btnCoco || !btnObj) return;
+
+            if (isObj) {
+                btnObj.style.background  = 'rgba(245,158,11,0.18)';
+                btnObj.style.color       = '#fbbf24';
+                btnObj.style.borderColor = 'rgba(245,158,11,0.5)';
+                btnCoco.style.background  = 'rgba(255,255,255,0.04)';
+                btnCoco.style.color       = 'var(--text-sub)';
+                btnCoco.style.borderColor = 'var(--border)';
+                desc.innerHTML = '<strong style="color:#fbbf24;">Objects365:</strong> Rich 365-class vocabulary. More specific detections per scene.';
+            } else {
+                btnCoco.style.background  = 'rgba(34,197,94,0.18)';
+                btnCoco.style.color       = '#4ade80';
+                btnCoco.style.borderColor = 'rgba(34,197,94,0.5)';
+                btnObj.style.background  = 'rgba(255,255,255,0.04)';
+                btnObj.style.color       = 'var(--text-sub)';
+                btnObj.style.borderColor = 'var(--border)';
+                desc.innerHTML = '<strong style="color:#4ade80;">COCO 80:</strong> Standard 80-class vocabulary for YOLOWorld. Compact and fast.';
+            }
+        }
+
+        socket.on('context_vocab_state', (data) => {
+            applyVocabUI(data.vocab);
         });
+
+        function _renderDetections(results, el) {
+            if (!results || results.length === 0) { el.innerText = 'None'; return; }
+            const counts = {};
+            results.forEach(d => { counts[d.class] = (counts[d.class] || 0) + 1; });
+            el.innerText = Object.entries(counts).map(([k, v]) => `${k} (${v})`).join(', ');
+        }
+
+        socket.on('detection_results', (results) => {
+            _renderDetections(results, elObjects);
+        });
+
+        const elBaseObjects = document.getElementById('base-detected-objects');
+        socket.on('base_detection_results', (results) => {
+            _renderDetections(results, elBaseObjects);
+        });
+
+        function setManualScene(scene) {
+            if (scene) setSceneFromBrowser(scene);
+        }
 
         // --- Mobile & Keyboard Servo Logic ---
         const SERVO_MAP = { up: [2, 5], down: [2, -5], left: [1, 5], right: [1, -5] };
@@ -866,6 +1435,683 @@
             if (action && activeAction === action) stopServoMove();
         });
 
+        // ═══════════════════════════════════════════════════════════════
+        //  Detection Alerts
+        // ═══════════════════════════════════════════════════════════════
+        const LED_COLORS = [
+            { id: 0, label: 'Red',    hex: '#e74c3c' },
+            { id: 1, label: 'Green',  hex: '#2ecc71' },
+            { id: 2, label: 'Blue',   hex: '#3498db' },
+            { id: 3, label: 'Yellow', hex: '#f1c40f' },
+            { id: 4, label: 'Purple', hex: '#9b59b6' },
+            { id: 5, label: 'Cyan',   hex: '#1abc9c' },
+            { id: 6, label: 'White',  hex: '#ecf0f1' },
+        ];
+
+        let alertRules = [];
+        let triggeredAlerts = {};  // rule_id -> info
+        let selectedColorId = 0;
+
+        // Build color dots in form
+        const colorDotsEl = document.getElementById('alert-color-dots');
+        LED_COLORS.forEach(c => {
+            const dot = document.createElement('div');
+            dot.className = 'alert-color-swatch' + (c.id === 0 ? ' selected' : '');
+            dot.style.background = c.hex;
+            dot.title = c.label;
+            dot.onclick = () => {
+                selectedColorId = c.id;
+                colorDotsEl.querySelectorAll('.alert-color-swatch').forEach(d => d.classList.remove('selected'));
+                dot.classList.add('selected');
+            };
+            colorDotsEl.appendChild(dot);
+        });
+
+        // RGB sliders live preview
+        ['r','g','b'].forEach(ch => {
+            const slider = document.getElementById('alert-' + ch);
+            const valEl = document.getElementById('alert-' + ch + '-val');
+            slider.addEventListener('input', () => {
+                valEl.textContent = slider.value;
+                const r = document.getElementById('alert-r').value;
+                const g = document.getElementById('alert-g').value;
+                const b = document.getElementById('alert-b').value;
+                document.getElementById('alert-rgb-preview').style.background = `rgb(${r},${g},${b})`;
+            });
+        });
+
+        function onAlertActionChange() {
+            const action = document.getElementById('alert-action').value;
+            document.getElementById('params-led-color').style.display = action === 'led_color' ? 'block' : 'none';
+            document.getElementById('params-led-rgb').style.display = action === 'led_rgb' ? 'block' : 'none';
+            document.getElementById('params-buzzer-pattern').style.display = action === 'buzzer_pattern' ? 'block' : 'none';
+        }
+
+        function toggleAlertForm(show) {
+            document.getElementById('alert-form').style.display = show ? 'block' : 'none';
+            document.getElementById('alert-show-form-btn').style.display = show ? 'none' : 'block';
+        }
+
+        // Populate class dropdown from current detection classes
+        function updateAlertClassDropdown(classes) {
+            const sel = document.getElementById('alert-class');
+            const current = sel.value;
+            sel.innerHTML = '';
+            (classes || []).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                if (c === current) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function actionLabel(rule) {
+            const p = rule.action_params || {};
+            switch (rule.action_type) {
+                case 'led_color':
+                    const c = LED_COLORS.find(x => x.id === p.color);
+                    return 'LED ' + (c ? c.label : '#' + p.color);
+                case 'led_rgb':
+                    return `LED (${p.r||0},${p.g||0},${p.b||0})`;
+                case 'buzzer_on':
+                    return 'Buzzer';
+                case 'buzzer_pattern':
+                    return `Beep ${p.repeats||3}x`;
+                default:
+                    return rule.action_type;
+            }
+        }
+
+        function renderAlertRules() {
+            const container = document.getElementById('alert-rules-list');
+            const activeBadge = document.getElementById('alerts-active-badge');
+            const activeCount = Object.keys(triggeredAlerts).length;
+            activeBadge.textContent = activeCount > 0 ? `${activeCount} firing` : `${alertRules.length} rules`;
+            activeBadge.style.background = activeCount > 0 ? 'rgba(231,76,60,0.15)' : 'rgba(59,130,246,0.1)';
+            activeBadge.style.color = activeCount > 0 ? '#e74c3c' : 'var(--accent)';
+            activeBadge.style.borderColor = activeCount > 0 ? 'rgba(231,76,60,0.3)' : 'rgba(59,130,246,0.2)';
+
+            if (alertRules.length === 0) {
+                container.innerHTML = '<div style="text-align:center; font-size:0.78rem; color:var(--text-sub); padding:6px 0;">No alert rules configured</div>';
+                return;
+            }
+            container.innerHTML = alertRules.map(rule => {
+                const fired = !!triggeredAlerts[rule.id];
+                const disabledCls = rule.enabled ? '' : ' disabled';
+                const firedCls = fired ? ' fired' : '';
+                return `
+                    <div class="alert-rule-row${firedCls}${disabledCls}">
+                        <span class="alert-dot${fired ? ' active' : ''}"></span>
+                        <div class="alert-rule-info">
+                            <span class="alert-rule-class">${rule.class_name}</span>
+                            <span class="alert-rule-op">&ge;${rule.count_threshold}</span>
+                            <span class="alert-rule-arrow">&rarr;</span>
+                            <span class="alert-rule-action">${actionLabel(rule)}</span>
+                        </div>
+                        <label class="alert-toggle">
+                            <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleAlertRule('${rule.id}')">
+                            <span class="alert-toggle-slider"></span>
+                        </label>
+                        <button class="alert-delete-btn" onclick="removeAlertRule('${rule.id}')" title="Remove">&times;</button>
+                    </div>`;
+            }).join('');
+        }
+
+        function syncAlertRules() {
+            console.log('[Alert] Syncing', alertRules.length, 'rules to server');
+            socket.emit('alert_rules_sync', { rules: alertRules });
+        }
+
+        function addAlertRule() {
+            const className = document.getElementById('alert-class').value || 'person';
+            const threshold = Math.max(1, parseInt(document.getElementById('alert-threshold').value) || 1);
+            const actionType = document.getElementById('alert-action').value;
+            console.log('[Alert] Adding rule:', className, '>=', threshold, '->', actionType);
+
+            let actionParams = {};
+            if (actionType === 'led_color') {
+                actionParams = { color: selectedColorId };
+            } else if (actionType === 'led_rgb') {
+                actionParams = {
+                    r: parseInt(document.getElementById('alert-r').value),
+                    g: parseInt(document.getElementById('alert-g').value),
+                    b: parseInt(document.getElementById('alert-b').value),
+                };
+            } else if (actionType === 'buzzer_pattern') {
+                actionParams = {
+                    on_ms: parseInt(document.getElementById('alert-on-ms').value),
+                    off_ms: parseInt(document.getElementById('alert-off-ms').value),
+                    repeats: parseInt(document.getElementById('alert-repeats').value),
+                };
+            }
+
+            alertRules.push({
+                id: crypto.randomUUID(),
+                class_name: className,
+                count_threshold: threshold,
+                action_type: actionType,
+                action_params: actionParams,
+                enabled: true,
+            });
+            syncAlertRules();
+            toggleAlertForm(false);
+        }
+
+        function removeAlertRule(id) {
+            alertRules = alertRules.filter(r => r.id !== id);
+            syncAlertRules();
+        }
+
+        function toggleAlertRule(id) {
+            alertRules = alertRules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r);
+            syncAlertRules();
+        }
+
+        // Socket events for alerts
+        socket.on('alert_rules_state', (data) => {
+            alertRules = data.rules || [];
+            renderAlertRules();
+        });
+
+        socket.on('alert_triggered', (data) => {
+            triggeredAlerts[data.rule_id] = data;
+            renderAlertRules();
+        });
+
+        socket.on('alert_clear', (data) => {
+            delete triggeredAlerts[data.rule_id];
+            renderAlertRules();
+        });
+
+        // Initial render
+        renderAlertRules();
+
+    </script>
+
+    <!-- ── Stream watchdog: reconnect MJPEG <img> if stream stalls ─────────── -->
+    <script>
+    (function () {
+        // How long (ms) without a new frame before we force-reconnect
+        var STALL_TIMEOUT = 8000;
+        // How often (ms) we check each stream image
+        var CHECK_INTERVAL = 3000;
+
+        function watchStream(imgEl) {
+            if (!imgEl) return;
+            var baseSrc = imgEl.src.split('?')[0];
+            var lastLoad = Date.now();
+            var reconnecting = false;
+
+            // Track every time a new MJPEG frame is decoded
+            imgEl.addEventListener('load', function () {
+                lastLoad = Date.now();
+                reconnecting = false;
+            });
+
+            imgEl.addEventListener('error', function () {
+                if (!reconnecting) reconnect();
+            });
+
+            function reconnect() {
+                reconnecting = true;
+                console.warn('[StreamWatchdog] Reconnecting:', baseSrc);
+                // Append a timestamp to bust the browser cache / force a new HTTP connection
+                imgEl.src = baseSrc + '?t=' + Date.now();
+            }
+
+            setInterval(function () {
+                if (reconnecting) return;
+                if (Date.now() - lastLoad > STALL_TIMEOUT) {
+                    reconnect();
+                }
+            }, CHECK_INTERVAL);
+        }
+
+        // Attach watchdog only to visible MJPEG images (skip hidden ones)
+        document.querySelectorAll('img[src*="video_feed"]').forEach(watchStream);
+    })();
+    </script>
+
+    <!-- ── WebRTC ──────────────────────────────────────────────────────────── -->
+    <script>
+    (function () {
+        const _rtcPeers = {};   // prefix → { pc, active }
+
+        const STATUS_COLORS = {
+            connecting:    '#fbbf24',
+            connected:     '#4ade80',
+            disconnected:  '#94a3b8',
+            failed:        '#f87171',
+            closed:        '#94a3b8',
+        };
+
+        function _els(prefix) {
+            return {
+                video:  document.getElementById(prefix + '-webrtc'),
+                img:    document.getElementById(prefix + '-mjpeg'),
+                btn:    document.getElementById(prefix + '-rtc-btn'),
+                status: document.getElementById(prefix + '-rtc-status'),
+            };
+        }
+
+        window.toggleWebRTC = async function (prefix, mode) {
+            if (_rtcPeers[prefix]) disconnectWebRTC(prefix);
+            else await connectWebRTC(prefix, mode);
+        };
+
+        async function connectWebRTC(prefix, mode) {
+            const { video, img, btn, status } = _els(prefix);
+
+            status.textContent = 'Connecting…';
+            status.style.color = STATUS_COLORS.connecting;
+            status.style.display = 'block';
+            btn.style.opacity = '0.6';
+            btn.style.cursor  = 'wait';
+
+            const pc = new RTCPeerConnection({ iceServers: [] });  // LAN — no STUN needed
+            _rtcPeers[prefix] = { pc, active: false };
+
+            pc.addTransceiver('video', { direction: 'recvonly' });
+
+            pc.ontrack = (e) => {
+                video.srcObject = e.streams[0];
+                // Explicitly call play() — Chrome won't autoplay a hidden element
+                // even with the `autoplay muted` attributes set.
+                video.play().catch(err => console.warn('[WebRTC] autoplay blocked:', err));
+            };
+
+            pc.onconnectionstatechange = () => {
+                const s = pc.connectionState;
+                status.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+                status.style.color = STATUS_COLORS[s] || '#94a3b8';
+
+                if (s === 'connected') {
+                    img.style.display   = 'none';
+                    video.style.display = 'block';
+                    // Re-trigger play after making the element visible; some
+                    // browsers suspend a hidden video's pipeline.
+                    video.play().catch(err => console.warn('[WebRTC] play:', err));
+                    _rtcPeers[prefix].active = true;
+                    btn.textContent     = '📡 MJPEG';
+                    btn.style.color     = '#4ade80';
+                    btn.style.borderColor = 'rgba(74,222,128,0.4)';
+                    btn.style.opacity   = '1';
+                    btn.style.cursor    = 'pointer';
+                } else if (s === 'failed' || s === 'closed') {
+                    setTimeout(() => disconnectWebRTC(prefix), 1500);
+                }
+            };
+
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const res  = await fetch('/webrtc/offer', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ sdp: offer.sdp, type: offer.type, mode }),
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                await pc.setRemoteDescription(new RTCSessionDescription(data));
+            } catch (err) {
+                console.error('[WebRTC]', err);
+                status.textContent = 'Failed: ' + err.message;
+                status.style.color = STATUS_COLORS.failed;
+                btn.style.opacity  = '1';
+                btn.style.cursor   = 'pointer';
+                setTimeout(() => disconnectWebRTC(prefix), 3000);
+            }
+        }
+
+        function disconnectWebRTC(prefix) {
+            const peer = _rtcPeers[prefix];
+            if (peer?.pc) { try { peer.pc.close(); } catch (_) {} }
+            delete _rtcPeers[prefix];
+
+            const { video, img, btn, status } = _els(prefix);
+            if (video)  { video.style.display = 'none'; video.srcObject = null; }
+            if (img)    { img.style.display = 'block'; }
+            if (btn)    {
+                btn.textContent   = '⚡ WebRTC';
+                btn.style.color   = '#94a3b8';
+                btn.style.borderColor = 'rgba(255,255,255,0.2)';
+                btn.style.opacity = '1';
+                btn.style.cursor  = 'pointer';
+            }
+            if (status) { status.style.display = 'none'; }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Internationalisation (EN / JP)
+        // ═══════════════════════════════════════════════════════════════
+        const _I18N = {
+            en: {
+                'page-title':         'Two-Phase Context Recognition',
+                'page-subtitle':      'Adaptive Hierarchical Detection Framework \u2022 Student: Muhammad Tsaqif Mukhayyar',
+                'p1-title':           'Phase 1: Global Scene Recognition',
+                'raw-input':          'Raw Input',
+                'top-scenes':         'Top Predicted Scenes:',
+                'mode-label':         'Mode:',
+                'scene-browser-title':'🗺 Scene Browser',
+                'scene-search':       'Search 365 scenes...',
+                'scene-active':       'Active:',
+                'loading-scenes':     'Loading scenes\u2026',
+                'p1-hist-title':      '🧠 Phase 1 Inference History',
+                'p1-hist-empty':      'Waiting for first prediction\u2026',
+                'p2a-title':          'Phase 2A: YOLOv8s-WorldV2',
+                'aug-output':         'Augmented Output',
+                'detected-lbl':       'Detected Objects:',
+                'switch-latency':     '\u23F1 Context Switch Latency',
+                'p2-timing-empty':    'Waiting for first scene switch\u2026',
+                'inf-speed':          '\u26A1 Inference Speed (live)',
+                'bench-pre-lbl':      'Pre',
+                'bench-inf-lbl':      'Inference',
+                'bench-post-lbl':     'Post',
+                'bench-tot-lbl':      'Total',
+                'bench-det-lbl':      'Detections',
+                'bench-conf-lbl':     'Avg Conf',
+                'bench-jitter-lbl':   'Jitter \u03C3',
+                'switch-mode-hdr':    'Switch Mode',
+                'vocab-hdr':          'Context Vocabulary',
+                'p2b-title':          'Phase 2B: YOLOv8s Base',
+                'aug-base':           'Augmented (Base)',
+                'model-hdr':          'Model',
+                'cmp-title':          '\uD83D\uDCCA Avg Inference Comparison',
+                'ms-inf-lbl':         'ms inference',
+                'cmp-verdict-init':   'Run both models to see comparison',
+                'alerts-title':       '\u26A1 Detection Alerts',
+                'alerts-desc':        'Trigger LED or buzzer actions when specific objects are detected.',
+            },
+            jp: {
+                'page-title':         '二段階コンテキスト認識',
+                'page-subtitle':      '適応型階層検出フレームワーク \u2022 学生: Muhammad Tsaqif Mukhayyar',
+                'p1-title':           'フェーズ1: グローバルシーン認識',
+                'raw-input':          '生入力',
+                'top-scenes':         '予測シーントップ:',
+                'mode-label':         'モード:',
+                'scene-browser-title':'🗺 シーンブラウザ',
+                'scene-search':       '365シーンを検索...',
+                'scene-active':       'アクティブ:',
+                'loading-scenes':     'シーン読込中\u2026',
+                'p1-hist-title':      '🧠 フェーズ1 推論履歴',
+                'p1-hist-empty':      '最初の予測待機中\u2026',
+                'p2a-title':          'フェーズ2A: YOLOv8s-WorldV2',
+                'aug-output':         '検出出力',
+                'detected-lbl':       '検出オブジェクト:',
+                'switch-latency':     '\u23F1 コンテキスト切替遅延',
+                'p2-timing-empty':    '最初のシーン切替待機中\u2026',
+                'inf-speed':          '\u26A1 推論速度（リアルタイム）',
+                'bench-pre-lbl':      '前処理',
+                'bench-inf-lbl':      '推論',
+                'bench-post-lbl':     '後処理',
+                'bench-tot-lbl':      '合計',
+                'bench-det-lbl':      '検出数',
+                'bench-conf-lbl':     '平均信頼度',
+                'bench-jitter-lbl':   'ジッター \u03C3',
+                'switch-mode-hdr':    '切替モード',
+                'vocab-hdr':          'コンテキスト語彙',
+                'p2b-title':          'フェーズ2B: YOLOv8s ベース',
+                'aug-base':           '検出出力（ベース）',
+                'model-hdr':          'モデル',
+                'cmp-title':          '\uD83D\uDCCA 平均推論比較',
+                'ms-inf-lbl':         'ms 推論',
+                'cmp-verdict-init':   '両モデルを実行して比較',
+                'alerts-title':       '\u26A1 検出アラート',
+                'alerts-desc':        '特定のオブジェクト検出時にLEDまたはブザーを起動します。',
+            }
+        };
+
+        let _currentLang = (function() {
+            try { return localStorage.getItem('pens_lang') || 'en'; } catch(_) { return 'en'; }
+        })();
+
+        function applyLang(lang) {
+            _currentLang = lang;
+            const d = _I18N[lang] || _I18N.en;
+
+            // Update all data-i18n elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (d[key] != null) el.textContent = d[key];
+            });
+
+            // Update placeholders
+            const searchEl = document.getElementById('scene-search');
+            if (searchEl) searchEl.placeholder = d['scene-search'] || '';
+
+            // Update elements addressed by ID that aren't data-i18n
+            const cmpV = document.getElementById('cmp-verdict');
+            if (cmpV && (cmpV.textContent === _I18N.en['cmp-verdict-init'] ||
+                         cmpV.textContent === _I18N.jp['cmp-verdict-init'])) {
+                cmpV.textContent = d['cmp-verdict-init'];
+            }
+            const p1e = document.getElementById('p1-history-empty');
+            if (p1e) p1e.textContent = d['p1-hist-empty'];
+            const p2te = document.getElementById('p2-timing-empty');
+            if (p2te) p2te.textContent = d['p2-timing-empty'];
+            const ld = document.getElementById('scene-browser-loading');
+            if (ld && ld.style.display !== 'none') ld.textContent = d['loading-scenes'];
+
+            // Select option text
+            const modeOpts = document.querySelectorAll('#transition-mode option');
+            const modeTexts = lang === 'jp'
+                ? ['自動遷移', '手動']
+                : ['Auto-Transition', 'Manual'];
+            modeOpts.forEach((o, i) => { if (modeTexts[i]) o.textContent = modeTexts[i]; });
+
+            // Update toggle button
+            const btn = document.getElementById('lang-toggle');
+            if (btn) btn.textContent = lang === 'en' ? '🌐 日本語' : '🌐 English';
+
+            try { localStorage.setItem('pens_lang', lang); } catch(_) {}
+        }
+
+        function toggleLang() { applyLang(_currentLang === 'en' ? 'jp' : 'en'); }
+        // Expose to global scope so onclick="..." attributes in the HTML can reach them
+        window.toggleLang = toggleLang;
+
+        // Apply stored preference on load
+        if (_currentLang !== 'en') applyLang(_currentLang);
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Scene Browser (all Places365 scenes)
+        // ═══════════════════════════════════════════════════════════════
+        let _allScenes = [];
+        let _activeScene = '';
+
+        function _renderSceneChips(filter) {
+            const container = document.getElementById('scene-chips');
+            const countEl   = document.getElementById('scene-browser-count');
+            const loadEl    = document.getElementById('scene-browser-loading');
+            if (!container) return;
+            const f = (filter || '').toLowerCase().trim();
+            const shown = f ? _allScenes.filter(s => s.name.toLowerCase().includes(f)) : _allScenes;
+            if (countEl) countEl.textContent = f ? `${shown.length} / ${_allScenes.length}` : `${_allScenes.length} scenes`;
+            if (loadEl)  loadEl.style.display = 'none';
+            container.innerHTML = shown.map(s => {
+                const isActive = s.name === _activeScene;
+                const label    = s.name.replace(/_/g, ' ');
+                return `<span class="scene-chip${isActive ? ' active' : ''}" onclick="setSceneFromBrowser('${s.name}')" title="${s.class_count} classes">${label}</span>`;
+            }).join('');
+        }
+
+        function filterScenes(val) { _renderSceneChips(val); }
+        window.filterScenes = filterScenes;
+
+        function setSceneFromBrowser(name) {
+            _activeScene = name;
+            lastScene    = name;
+            currentMode  = 'manual';
+            if (elMode) elMode.value = 'manual';
+            socket.emit('set_scene', { scene: name });
+            const lbl = document.getElementById('scene-active-label');
+            const nm  = document.getElementById('scene-active-name');
+            if (lbl) lbl.style.display = 'block';
+            if (nm)  nm.textContent    = name.replace(/_/g, ' ');
+            const f = document.getElementById('scene-search');
+            _renderSceneChips(f ? f.value : '');
+        }
+
+        window.setSceneFromBrowser = setSceneFromBrowser;
+
+        function _loadSceneBrowser() {
+            fetch('/api/scenes')
+                .then(r => r.json())
+                .then(data => {
+                    _allScenes = data;
+                    _renderSceneChips('');
+                })
+                .catch(() => {
+                    const loadEl = document.getElementById('scene-browser-loading');
+                    if (loadEl) loadEl.textContent = 'Failed to load scenes.';
+                });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Model Speed Benchmark
+        // ═══════════════════════════════════════════════════════════════
+        const _benchHistory = { worldv2: [], base: [] };
+        const _BENCH_MAX = 20;
+
+        function _benchSpeedColor(ms) {
+            if (ms < 150) return '#4ade80';
+            if (ms < 300) return '#fbbf24';
+            return '#f87171';
+        }
+
+        function _benchRedraw(data) {
+            const key = data.model_key;
+            const sz  = data.imgsz;
+
+            const pre  = document.getElementById(`bench-pre-${key}`);
+            const inf  = document.getElementById(`bench-inf-${key}`);
+            const post = document.getElementById(`bench-post-${key}`);
+            const tot  = document.getElementById(`bench-tot-${key}`);
+            const str  = document.getElementById(`bench-speed-str-${key}`);
+            const det  = document.getElementById(`bench-det-${key}`);
+            const conf = document.getElementById(`bench-conf-${key}`);
+
+            if (pre)  pre.textContent  = data.preprocess_ms.toFixed(1);
+            if (post) post.textContent = data.postprocess_ms.toFixed(1);
+            if (tot)  tot.textContent  = data.total_ms.toFixed(1);
+            if (inf) {
+                inf.textContent  = data.inference_ms.toFixed(1);
+                inf.style.color  = _benchSpeedColor(data.inference_ms);
+            }
+            if (str) {
+                str.innerHTML =
+                    `Speed: <strong style="color:#a78bfa;">${data.preprocess_ms.toFixed(1)}ms</strong> preprocess, ` +
+                    `<strong style="color:${_benchSpeedColor(data.inference_ms)};">${data.inference_ms.toFixed(1)}ms</strong> inference, ` +
+                    `<strong style="color:#fbbf24;">${data.postprocess_ms.toFixed(1)}ms</strong> postprocess ` +
+                    `per image at shape (1, 3, ${sz}, ${sz})`;
+            }
+            if (det != null && data.detection_count != null) det.textContent = data.detection_count;
+            if (conf != null && data.avg_conf != null) conf.textContent = data.avg_conf > 0 ? (data.avg_conf * 100).toFixed(1) + '%' : '—';
+
+            _benchHistory[key].unshift(data);
+            if (_benchHistory[key].length > _BENCH_MAX) _benchHistory[key].pop();
+            _benchRedrawHistory(key);
+            _benchRedrawComparison();
+        }
+
+        function _benchRedrawHistory(key) {
+            const hist   = _benchHistory[key];
+            if (!hist.length) return;
+            const avgEl    = document.getElementById(`bench-avg-${key}`);
+            const histEl   = document.getElementById(`bench-hist-${key}`);
+            const jitterEl = document.getElementById(`bench-jitter-${key}`);
+            if (!avgEl || !histEl) return;
+
+            const n       = hist.length;
+            const avgInf  = hist.reduce((s, h) => s + h.inference_ms,   0) / n;
+            const avgPre  = hist.reduce((s, h) => s + h.preprocess_ms,  0) / n;
+            const avgPost = hist.reduce((s, h) => s + h.postprocess_ms, 0) / n;
+            const avgTot  = hist.reduce((s, h) => s + h.total_ms,       0) / n;
+
+            // Jitter = std dev of inference_ms over history
+            const variance = hist.reduce((s, h) => s + (h.inference_ms - avgInf) ** 2, 0) / n;
+            const jitter   = Math.sqrt(variance);
+            if (jitterEl) {
+                jitterEl.textContent = n >= 2 ? jitter.toFixed(1) : '—';
+                jitterEl.style.color = jitter < 20 ? '#4ade80' : jitter < 50 ? '#fbbf24' : '#f87171';
+            }
+
+            avgEl.innerHTML =
+                `Avg (last ${n}): <strong style="color:var(--text-main);">${avgTot.toFixed(1)} ms</strong> total &nbsp;·&nbsp; ` +
+                `inf: <strong style="color:${_benchSpeedColor(avgInf)};">${avgInf.toFixed(1)} ms</strong> &nbsp;·&nbsp; ` +
+                `≈ <strong style="color:var(--text-main);">${(1000/avgTot).toFixed(1)} fps</strong>`;
+
+            const maxInf = Math.max(...hist.map(h => h.inference_ms), 1);
+            histEl.innerHTML = hist.slice(0, 10).map(h => {
+                const w   = Math.min(100, (h.inference_ms / maxInf) * 100);
+                const col = _benchSpeedColor(h.inference_ms);
+                const detStr = h.detection_count != null ? ` · ${h.detection_count}det` : '';
+                return `<div style="display:flex; align-items:center; gap:6px; font-size:0.65rem; color:var(--text-sub);">
+                    <div style="width:38px; text-align:right; flex-shrink:0;">${h.inference_ms.toFixed(0)} ms</div>
+                    <div style="flex:1; height:5px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                        <div style="width:${w}%; height:100%; background:${col}; border-radius:3px;"></div>
+                    </div>
+                    <div style="width:52px; flex-shrink:0; text-align:right;">${(1000/h.total_ms).toFixed(1)} fps${detStr}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function _benchRedrawComparison() {
+            const wHist = _benchHistory.worldv2;
+            const bHist = _benchHistory.base;
+            const cmpW  = document.getElementById('cmp-worldv2-inf');
+            const cmpB  = document.getElementById('cmp-base-inf');
+            const verdict = document.getElementById('cmp-verdict');
+            if (!cmpW || !cmpB || !verdict) return;
+
+            const avgW = wHist.length ? wHist.reduce((s,h) => s+h.inference_ms, 0) / wHist.length : null;
+            const avgB = bHist.length ? bHist.reduce((s,h) => s+h.inference_ms, 0) / bHist.length : null;
+
+            cmpW.textContent = avgW !== null ? avgW.toFixed(1) : '—';
+            cmpB.textContent = avgB !== null ? avgB.toFixed(1) : '—';
+            cmpW.style.color = avgW !== null ? _benchSpeedColor(avgW) : 'var(--text-main)';
+            cmpB.style.color = avgB !== null ? _benchSpeedColor(avgB) : 'var(--text-main)';
+
+            if (avgW !== null && avgB !== null) {
+                const faster = avgW < avgB ? 'YOLOWorld' : 'Base YOLO';
+                const slower = avgW < avgB ? 'Base YOLO' : 'YOLOWorld';
+                const ratio  = Math.max(avgW, avgB) / Math.min(avgW, avgB);
+                const diff   = Math.abs(avgW - avgB).toFixed(1);
+                const col    = avgW < avgB ? '#60a5fa' : '#a78bfa';
+                verdict.innerHTML =
+                    `<strong style="color:${col};">${faster}</strong> is faster by ` +
+                    `<strong style="color:var(--text-main);">${diff} ms</strong> ` +
+                    `(<strong style="color:var(--text-main);">${ratio.toFixed(2)}×</strong> speedup over ${slower})`;
+            } else {
+                verdict.textContent = 'Run both models to see comparison';
+            }
+        }
+
+        socket.on('inference_speed', (data) => {
+            _benchRedraw(data);
+        });
+
+        socket.on('benchmark_model_state', (data) => {
+            const unavail = document.getElementById('bench-base-unavailable');
+            if (unavail) unavail.style.display = data.available_base ? 'none' : 'block';
+        });
+
+        // Dim buttons if aiortc is not installed on the server
+        fetch('/webrtc/status').then(r => r.json()).then(d => {
+            if (!d.available) {
+                ['p1-rtc-btn', 'p2-rtc-btn'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.title   = 'aiortc not installed — pip install aiortc';
+                    el.style.opacity = '0.35';
+                    el.style.cursor  = 'not-allowed';
+                    el.onclick = null;
+                });
+            }
+        }).catch(() => {});
+    })();
     </script>
 </body>
 

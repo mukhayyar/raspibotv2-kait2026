@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Adaptive Hierarchical Detection — PENS-KAIT 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --bg2:       #161b22;
+  --bg3:       #21262d;
+  --border:    #30363d;
+  --text:      #e6edf3;
+  --muted:     #8b949e;
+  --blue:      #4f8ef7;
+  --blue-dim:  #1a3a6b;
+  --green:     #3fb950;
+  --green-dim: #0d3320;
+  --orange:    #f0883e;
+  --orange-dim:#3d1f0a;
+  --purple:    #bc8cff;
+  --purple-dim:#2d1f5e;
+  --red:       #f85149;
+  --red-dim:   #3d0a0a;
+  --yellow:    #d29922;
+  --yellow-dim:#2d200a;
+  --radius:    12px;
+  --slide-w:   1100px;
+  --slide-h:   680px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: #070a0e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  overflow: hidden;
+  color: var(--text);
+}
+
+#deck {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.slide {
+  position: absolute;
+  width: var(--slide-w); height: var(--slide-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(60px) scale(0.97);
+  transition: opacity .35s cubic-bezier(.4,0,.2,1),
+              transform .35s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+}
+.slide.active {
+  opacity: 1; pointer-events: all;
+  transform: translateX(0) scale(1);
+}
+.slide.prev {
+  opacity: 0; pointer-events: none;
+  transform: translateX(-60px) scale(0.97);
+}
+
+.slide-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.section-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  padding: 3px 9px; border-radius: 20px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.badge-impact    { background: var(--purple-dim); color: var(--purple); }
+.badge-contrib   { background: var(--green-dim);  color: var(--green);  }
+.badge-problem   { background: var(--orange-dim); color: var(--orange); }
+.badge-method    { background: var(--blue-dim);   color: var(--blue);   }
+.badge-results   { background: var(--yellow-dim); color: var(--yellow); }
+.badge-future    { background: var(--bg3);        color: var(--muted);  }
+.badge-title     { background: var(--blue-dim);   color: var(--blue);   }
+
+.slide-num { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+.slide-body {
+  flex: 1; padding: 24px 34px;
+  overflow: hidden; display: flex; flex-direction: column;
+  gap: 14px;
+}
+
+h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.2; }
+h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+p  { font-size: .93rem; line-height: 1.65; color: var(--text); }
+.lead { font-size: 1.05rem; line-height: 1.6; color: var(--muted); }
+.hl   { color: var(--blue); font-weight: 600; }
+.hl-g { color: var(--green); font-weight: 600; }
+.hl-o { color: var(--orange); font-weight: 600; }
+.hl-r { color: var(--red); font-weight: 600; }
+.hl-p { color: var(--purple); font-weight: 600; }
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: .83em;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px;
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
+
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.card.blue   { border-color: var(--blue-dim);   background: #0d1f3c; }
+.card.green  { border-color: var(--green-dim);  background: #0a2015; }
+.card.orange { border-color: var(--orange-dim); background: #2a1507; }
+.card.red    { border-color: var(--red-dim);    background: #1e0505; }
+.card.purple { border-color: var(--purple-dim); background: #1a1230; }
+.card h4 { font-size: .88rem; font-weight: 600; margin-bottom: 6px; }
+.card p  { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+
+.stat-row { display: flex; gap: 11px; }
+.stat-box {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 14px; text-align: center;
+}
+.stat-val   { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: .72rem; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.stat-box.blue   { border-color: var(--blue);   }
+.stat-box.green  { border-color: var(--green);  }
+.stat-box.orange { border-color: var(--orange); }
+.stat-box.red    { border-color: var(--red);    }
+.stat-box.purple { border-color: var(--purple); }
+
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.check-list li {
+  display: flex; align-items: flex-start; gap: 9px;
+  font-size: .88rem; line-height: 1.5;
+}
+.check-list li::before {
+  content: '▸'; color: var(--blue); font-size: .95rem;
+  flex-shrink: 0; margin-top: 2px;
+}
+
+.rq-list { display: flex; flex-direction: column; gap: 11px; }
+.rq-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 15px;
+}
+.rq-num {
+  font-size: .72rem; font-weight: 700; letter-spacing: .05em;
+  padding: 3px 7px; border-radius: 6px;
+  background: var(--blue-dim); color: var(--blue);
+  flex-shrink: 0; margin-top: 1px;
+}
+.rq-item p { font-size: .87rem; line-height: 1.5; margin: 0; }
+
+.arch-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 10px;
+  font-size: .78rem; text-align: center; font-weight: 500;
+}
+
+.pipeline { display: flex; align-items: center; gap: 5px; }
+.pipe-stage {
+  flex: 1; background: var(--bg2); border-radius: 10px;
+  border: 1px solid var(--border); padding: 10px 8px; text-align: center;
+}
+.pipe-stage .ps-icon  { font-size: 1.3rem; }
+.pipe-stage .ps-title { font-size: .78rem; font-weight: 700; margin: 3px 0 2px; }
+.pipe-stage .ps-sub   { font-size: .7rem; color: var(--muted); line-height: 1.3; }
+.pipe-arrow { color: var(--muted); font-size: 1.2rem; }
+
+.db-diagram { display: flex; gap: 16px; align-items: flex-start; }
+.db-table {
+  flex: 1; background: var(--bg2); border-radius: 10px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.db-table-header { padding: 7px 11px; font-size: .8rem; font-weight: 700; border-bottom: 1px solid var(--border); }
+.db-table.coco .db-table-header { background: var(--blue-dim); color: var(--blue); }
+.db-row {
+  display: flex; gap: 8px; padding: 5px 11px;
+  font-size: .76rem; border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+}
+.db-row:last-child { border-bottom: none; }
+.db-col-name { color: var(--text); flex: 1; }
+.db-col-type { color: var(--muted); }
+.db-col-pk   { color: var(--yellow); font-size: .68rem; font-weight: 700;
+                background: var(--yellow-dim); border-radius: 3px; padding: 1px 4px; }
+
+.vocab-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.vocab-table th {
+  background: var(--bg3); padding: 7px 11px;
+  text-align: left; font-weight: 600; font-size: .76rem;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.vocab-table td { padding: 6px 11px; border-bottom: 1px solid var(--border); }
+.vocab-table tr:last-child td { border-bottom: none; }
+.vocab-table tr:hover td { background: var(--bg3); }
+.bar-inline { display: flex; align-items: center; gap: 7px; }
+.bar-fill   { height: 7px; border-radius: 4px; background: var(--blue); }
+
+.fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fw-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 15px;
+  display: flex; gap: 11px; align-items: flex-start;
+}
+.fw-icon { font-size: 1.3rem; flex-shrink: 0; }
+.fw-item h4 { font-size: .86rem; font-weight: 600; margin-bottom: 4px; }
+.fw-item p  { font-size: .77rem; color: var(--muted); line-height: 1.4; }
+.fw-priority {
+  font-size: .68rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 10px; display: inline-block; margin-top: 5px;
+}
+.fp-high   { background: var(--orange-dim); color: var(--orange); }
+.fp-medium { background: var(--blue-dim);   color: var(--blue);   }
+.fp-inprog { background: var(--green-dim);  color: var(--green);  }
+
+#slide-1 .slide-body { justify-content: center; gap: 22px; }
+.title-eyebrow {
+  font-size: .83rem; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--blue);
+  display: flex; align-items: center; gap: 8px;
+}
+.title-eyebrow::before { content: ''; width: 24px; height: 2px; background: var(--blue); }
+.title-tag {
+  font-size: .76rem; padding: 3px 9px; border-radius: 20px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--muted);
+}
+
+.chart-wrap { flex: 1; position: relative; min-height: 0; }
+
+/* ── latency bar helpers ── */
+.lat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.lat-label { font-size: .8rem; color: var(--muted); width: 80px; flex-shrink: 0; text-align: right; }
+.lat-bar-bg { flex: 1; background: var(--bg3); border-radius: 4px; height: 22px; overflow: hidden; position: relative; }
+.lat-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; }
+.lat-bar-fill span { font-size: .78rem; font-weight: 700; white-space: nowrap; }
+
+/* conclusion */
+.result-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.result-row:last-child { border-bottom: none; }
+.result-metric { font-size: .81rem; }
+.result-val { font-size: .86rem; font-weight: 600; }
+
+/* navigation */
+#nav {
+  position: fixed; bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  z-index: 100;
+}
+.nav-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text); font-size: .95rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, border-color .2s;
+}
+.nav-btn:hover  { background: var(--bg3); border-color: var(--blue); }
+.nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+.nav-dots { display: flex; gap: 6px; align-items: center; }
+.nav-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border); cursor: pointer;
+  transition: background .2s, width .2s;
+}
+.nav-dot.active { background: var(--blue); width: 18px; border-radius: 3px; }
+.nav-dot:hover  { background: var(--muted); }
+.nav-count { font-size: .76rem; color: var(--muted); min-width: 38px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- ══ SLIDE 1 — TITLE ══ -->
+<div class="slide active" id="slide-1">
+  <div class="slide-header">
+    <span class="section-badge badge-title">PENS-KAIT 2026</span>
+    <span class="slide-num">1 / 14</span>
+  </div>
+  <div class="slide-body">
+    <div class="title-eyebrow">Weekly Seminar &nbsp;·&nbsp; March 16, 2026</div>
+    <h1 style="font-size:1.8rem; max-width:860px; line-height:1.28;">
+      Adaptive Hierarchical Detection:<br/>
+      A Two-Phase Framework for<br/>
+      <span class="hl">Context-Aware Object Detection</span><br/>
+      on Edge Devices
+    </h1>
+    <div style="display:flex; flex-direction:column; gap:5px; margin-top:4px;">
+      <div style="font-size:.93rem;"><strong>Muhammad Tsaqif Mukhayyar</strong></div>
+      <div style="font-size:.85rem; color:var(--muted);">
+        Supervisors: Prof. Kosuke Takano (KAIT) &nbsp;·&nbsp; Dr. Eng. Idris Winarno (PENS)
+      </div>
+      <div style="font-size:.84rem; color:var(--muted);">
+        PENS-KAIT Joint Research &nbsp;·&nbsp; Politeknik Elektronika Negeri Surabaya &amp; Kanagawa Institute of Technology
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+      <span class="title-tag">🤖 Yahboom Raspbot</span>
+      <span class="title-tag">🍓 Raspberry Pi 5</span>
+      <span class="title-tag">🎯 YOLOWorld v2 + COCO-80</span>
+      <span class="title-tag">🏛️ Places365 (GoogLeNet)</span>
+      <span class="title-tag">🐳 Docker Compose</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 2 — IMPACT ══ -->
+<div class="slide" id="slide-2">
+  <div class="slide-header">
+    <span class="section-badge badge-impact">1 · Impact</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Why does this matter?</span>
+    <span class="slide-num">2 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Real-World Significance</h2>
+    <div class="grid3">
+      <div class="card purple">
+        <div style="font-size:1.4rem; margin-bottom:7px;">🏥</div>
+        <h4>Adaptive Perception</h4>
+        <p>A robot moving from a kitchen to a hospital corridor should automatically shift its detection focus — without operator intervention or server restarts.</p>
+      </div>
+      <div class="card blue">
+        <div style="font-size:1.4rem; margin-bottom:7px;">🔬</div>
+        <h4>Edge AI Research</h4>
+        <p>First real-world profiling of context-aware YOLO switching latency on Raspberry Pi 5 — revealing unexpected <code>set_classes()</code> costs at edge scale.</p>
+      </div>
+      <div class="card green">
+        <div style="font-size:1.4rem; margin-bottom:7px;">📡</div>
+        <h4>Full-Stack Platform</h4>
+        <p>Unified robot teleoperation + intelligent detection in one Docker-deployable system — reproducible, logged, and accessible from any browser over LAN.</p>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box purple">
+        <div class="stat-val" style="color:var(--purple);">365</div>
+        <div class="stat-label">Scene categories<br/>(GoogLeNet Places365)</div>
+      </div>
+      <div class="stat-box blue">
+        <div class="stat-val" style="color:var(--blue);">588 K</div>
+        <div class="stat-label">Phase 1 inferences<br/>logged in access.db</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val" style="color:var(--orange);">3,355</div>
+        <div class="stat-label">Phase 2 context switches<br/>recorded with full timing</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val" style="color:var(--red);">2.7 s</div>
+        <div class="stat-label">Avg Phase 2 switch latency<br/>(classes mode, COCO-80)</div>
+      </div>
+    </div>
+    <p class="lead" style="font-size:.95rem;">
+      Key finding: context switching via <code>set_classes()</code> on YOLOWorld v2 is
+      <span class="hl-r">significantly slower than expected</span> on Raspberry Pi 5 CPU —
+      latency scales linearly with the number of target classes.
+    </p>
+  </div>
+</div>
+
+<!-- ══ SLIDE 3 — CONTRIBUTION ══ -->
+<div class="slide" id="slide-3">
+  <div class="slide-header">
+    <span class="section-badge badge-contrib">2 · Contribution</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">What we built</span>
+    <span class="slide-num">3 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Key Contributions</h2>
+    <div class="grid2" style="flex:1;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card blue">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">🔀</span>
+            <div>
+              <h4>C1 — Two-Phase Hierarchical Pipeline</h4>
+              <p>GoogLeNet Places365 (Phase 1, ~1 Hz) detects stable scene → triggers YOLOWorld v2 class reconfiguration (Phase 2) via COCO-80 context database. No human intervention required.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card green">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">📚</span>
+            <div>
+              <h4>C2 — Scene-Context Database (COCO-80)</h4>
+              <p>SQLite <code>context.db</code> maps all 365 Places365 scenes to COCO-80 class subsets. Seeded from Places365 CSV with heuristic keyword matching. Runtime CRUD via REST + Socket.IO.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card orange">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">📊</span>
+            <div>
+              <h4>C3 — Context Switch Latency Profiling</h4>
+              <p>Every Phase 2 switch logged to <code>access.db</code> with UUID, scene, mode, <code>db_query_ms</code>, <code>switch_ms</code>. 3,355 real measurements reveal <span class="hl-r">latency scales with num_classes</span>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card purple">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">🌐</span>
+            <div>
+              <h4>C4 — Full-Stack Robot Control Dashboard</h4>
+              <p>React 19 + Flask + Socket.IO — 8-direction drive, pan/tilt servo, LED, buzzer, sensor monitoring, alert rules engine. Keyboard + touch mobile controls.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:#3d1f5e; background:#120a1f;">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">🎥</span>
+            <div>
+              <h4>C5 — Dual Camera Streaming</h4>
+              <p>MJPEG (production, ~500 ms latency) + experimental WebRTC via <code>aiortc</code> (&lt;200 ms). Research dashboard at <code>/research</code> always shows Phase 1+2 overlays.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:#1a3a1a; background:#0a130a;">
+          <div style="display:flex; gap:9px; align-items:flex-start;">
+            <span style="font-size:1.2rem;">🐳</span>
+            <div>
+              <h4>C6 — Production Docker Deployment</h4>
+              <p>Docker Compose with privileged hardware access, volume-mounted models/DBs, Cloudflare Tunnel for public HTTPS. One-command deploy on Raspberry Pi OS Bookworm.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 4 — PROBLEM ══ -->
+<div class="slide" id="slide-4">
+  <div class="slide-header">
+    <span class="section-badge badge-problem">3 · Problem</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Research question</span>
+    <span class="slide-num">4 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Problem Statement</h2>
+    <div class="grid2" style="flex:1; gap:18px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <p class="lead" style="font-size:.95rem;">Existing mobile robot platforms treat <span class="hl-o">teleoperation</span> and <span class="hl-o">computer vision</span> as separate, statically configured systems.</p>
+        <div class="card orange">
+          <h4>❌ Problem 1 — Static Detection</h4>
+          <p>Standard YOLO models use fixed class sets. Moving the robot from a <em>kitchen</em> to an <em>office</em> doesn't change what it detects — irrelevant classes waste computation and increase false positives.</p>
+        </div>
+        <div class="card orange">
+          <h4>❌ Problem 2 — COCO-80 Vocabulary Ceiling</h4>
+          <p>COCO-80 covers general objects but misses scene-specific categories. Hospital scenes have no <code>stethoscope</code>, office scenes have no <code>whiteboard</code> — the vocabulary limits detection utility.</p>
+        </div>
+        <div class="card orange">
+          <h4>❌ Problem 3 — Edge Deployment Constraints</h4>
+          <p>Real-time context switching on Raspberry Pi 5 CPU must compete with inference, sensor polling, and WebSocket broadcasting — all on a single ARM board with no GPU.</p>
+        </div>
+      </div>
+      <div class="rq-list">
+        <div class="rq-item">
+          <span class="rq-num">RQ 1</span>
+          <p><strong>Can scene recognition automate YOLO class selection?</strong><br/>Can GoogLeNet Places365 reliably trigger correct COCO-80 class subsets per scene, achieving switches within an acceptable latency window?</p>
+        </div>
+        <div class="rq-item" style="border-color:var(--red-dim);">
+          <span class="rq-num" style="background:var(--red-dim); color:var(--red);">RQ 2</span>
+          <p><strong>What is the actual latency of <code>set_classes()</code> on edge hardware?</strong><br/>On Raspberry Pi 5 ARM Cortex-A76, how does context switch latency scale with the number of target COCO-80 classes?</p>
+        </div>
+        <div class="rq-item" style="border-color:var(--purple-dim);">
+          <span class="rq-num" style="background:var(--purple-dim); color:var(--purple);">RQ 3</span>
+          <p><strong>Is the 3-second switch target achievable with COCO-80 classes mode?</strong><br/>Given the observed latency-vs-classes relationship, for which scene configurations does the system meet or exceed the target?</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 5 — SYSTEM ARCHITECTURE ══ -->
+<div class="slide" id="slide-5">
+  <div class="slide-header">
+    <span class="section-badge badge-method">4 · Method</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">System architecture</span>
+    <span class="slide-num">5 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Full-Stack Architecture</h2>
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+      <div style="background:#0d1f3c; border:1px solid var(--blue-dim); border-radius:10px; padding:11px 15px;">
+        <div style="font-size:.7rem; color:var(--blue); font-weight:700; text-transform:uppercase; margin-bottom:7px; letter-spacing:.07em;">Browser Client (React 19 + Vite 7)</div>
+        <div style="display:flex; gap:9px;">
+          <div class="arch-box" style="flex:2; background:var(--blue-dim);">App.jsx<br/><span style="color:var(--muted); font-size:.7rem;">Keyboard + Auth</span></div>
+          <div class="arch-box" style="flex:2; background:var(--blue-dim);">useSocket.js<br/><span style="color:var(--muted); font-size:.7rem;">Socket.IO State</span></div>
+          <div class="arch-box" style="flex:1.5; background:var(--blue-dim);">CameraFeed<br/><span style="color:var(--muted); font-size:.7rem;">MJPEG/WebRTC</span></div>
+          <div class="arch-box" style="flex:3; background:var(--blue-dim);">Dashboard Components<br/><span style="color:var(--muted); font-size:.7rem;">DPad · Servo · LED · Detection · Alert · Sensor</span></div>
+        </div>
+      </div>
+      <div style="text-align:center; color:var(--muted); font-size:.82rem;">▲ ▼ &nbsp; Socket.IO / WebSocket &nbsp;·&nbsp; MJPEG &nbsp;·&nbsp; WebRTC (experimental)</div>
+      <div style="background:#0a2015; border:1px solid var(--green-dim); border-radius:10px; padding:11px 15px;">
+        <div style="font-size:.7rem; color:var(--green); font-weight:700; text-transform:uppercase; margin-bottom:7px; letter-spacing:.07em;">Backend — Flask + Socket.IO (Gunicorn :5000) · Docker · privileged</div>
+        <div style="display:flex; gap:9px;">
+          <div class="arch-box" style="background:var(--green-dim); flex:2;">app.py (1975 lines)<br/><span style="color:var(--muted); font-size:.7rem;">5 daemon threads</span></div>
+          <div class="arch-box" style="background:var(--green-dim); flex:2;">ContextManager<br/><span style="color:var(--muted); font-size:.7rem;">context.db · COCO-80</span></div>
+          <div class="arch-box" style="background:var(--green-dim); flex:1.5;">Phase 1<br/><span style="color:var(--muted); font-size:.7rem;">GoogLeNet @1Hz</span></div>
+          <div class="arch-box" style="background:var(--green-dim); flex:1.5;">Phase 2<br/><span style="color:var(--muted); font-size:.7rem;">YOLOWorld v2</span></div>
+          <div class="arch-box" style="background:var(--green-dim); flex:2;">access.db<br/><span style="color:var(--muted); font-size:.7rem;">inference_history · phase1_history</span></div>
+        </div>
+      </div>
+      <div style="text-align:center; color:var(--muted); font-size:.82rem;">▲ ▼ &nbsp; smbus2 I²C &nbsp;·&nbsp; rpicam-vid pipe &nbsp;·&nbsp; GPIO</div>
+      <div style="background:#2a1507; border:1px solid var(--orange-dim); border-radius:10px; padding:11px 15px;">
+        <div style="font-size:.7rem; color:var(--orange); font-weight:700; text-transform:uppercase; margin-bottom:7px; letter-spacing:.07em;">Raspberry Pi 5 Hardware (ARM Cortex-A76 · 4GB LPDDR4X)</div>
+        <div style="display:flex; gap:9px;">
+          <div class="arch-box" style="background:var(--orange-dim);">CSI/USB Camera</div>
+          <div class="arch-box" style="background:var(--orange-dim);">4WD Motors (I²C)</div>
+          <div class="arch-box" style="background:var(--orange-dim);">Pan/Tilt Servos</div>
+          <div class="arch-box" style="background:var(--orange-dim);">WS2812 LEDs</div>
+          <div class="arch-box" style="background:var(--orange-dim);">Buzzer</div>
+          <div class="arch-box" style="background:var(--orange-dim);">Sensors (US/IR/Line)</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; font-size:.8rem;">
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1;">
+          <strong>camera_thread</strong> <span style="color:var(--muted);">YUV420 → FrameManager @ 30fps</span>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1;">
+          <strong>inference_thread</strong> <span style="color:var(--muted);">YOLO Phase 2 per new frame</span>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1;">
+          <strong>phase1_thread</strong> <span style="color:var(--muted);">GoogLeNet @ ~1 Hz</span>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1;">
+          <strong>sensor_thread</strong> <span style="color:var(--muted);">I²C poll @ 3 Hz</span>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1;">
+          <strong>broadcast_thread</strong> <span style="color:var(--muted);">status push @ 4 Hz</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 6 — PHASE 1 ══ -->
+<div class="slide" id="slide-6">
+  <div class="slide-header">
+    <span class="section-badge badge-method">4 · Method</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Phase 1 — Scene recognition</span>
+    <span class="slide-num">6 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Phase 1: GoogLeNet Places365</h2>
+    <div class="pipeline" style="margin-bottom:2px;">
+      <div class="pipe-stage" style="border-color:var(--blue-dim); background:#0d1f3c;">
+        <div class="ps-icon">📷</div>
+        <div class="ps-title">Camera Frame</div>
+        <div class="ps-sub">640 × 640 px</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage" style="border-color:var(--blue-dim); background:#0d1f3c;">
+        <div class="ps-icon">🔲</div>
+        <div class="ps-title">Resize</div>
+        <div class="ps-sub">224 × 224 px</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage" style="border-color:var(--purple-dim); background:#1a1230;">
+        <div class="ps-icon">🧠</div>
+        <div class="ps-title">GoogLeNet</div>
+        <div class="ps-sub">Places365 Caffe<br/>OpenCV DNN</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage" style="border-color:var(--green-dim); background:#0a2015;">
+        <div class="ps-icon">🏷️</div>
+        <div class="ps-title">Top-5 Scores</div>
+        <div class="ps-sub">office_cubicles: 0.47<br/>computer_room: 0.09</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage" style="border-color:var(--yellow-dim); background:#1e160a;">
+        <div class="ps-icon">⚡</div>
+        <div class="ps-title">Stability</div>
+        <div class="ps-sub">N consecutive<br/>same scene</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage" style="border-color:var(--orange-dim); background:#2a1507;">
+        <div class="ps-icon">🔄</div>
+        <div class="ps-title">Trigger P2</div>
+        <div class="ps-sub">_switch_scene()<br/>(async)</div>
+      </div>
+    </div>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card blue">
+          <h4>Observed Performance (588,709 records)</h4>
+          <div style="display:flex; gap:10px; margin-top:8px;">
+            <div style="flex:1; text-align:center;">
+              <div style="font-size:1.4rem; font-weight:800; color:var(--green);">116.6 ms</div>
+              <div style="font-size:.72rem; color:var(--muted);">avg inference</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+              <div style="font-size:1.4rem; font-weight:800; color:var(--blue);">97.7 ms</div>
+              <div style="font-size:.72rem; color:var(--muted);">min inference</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+              <div style="font-size:1.4rem; font-weight:800; color:var(--orange);">715.7 ms</div>
+              <div style="font-size:.72rem; color:var(--muted);">max inference</div>
+            </div>
+          </div>
+        </div>
+        <div class="card green">
+          <h4>Stability Mechanism</h4>
+          <p>Switch triggered only after N consecutive frames predicting the same scene. Prevents spurious triggers from transient obstructions or robot movement through doorways. All predictions logged with UUID <code>infer_id</code>.</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card" style="background:var(--bg2);">
+          <h4>Top Scenes Observed (real data)</h4>
+          <table style="font-size:.78rem; width:100%; border-collapse:collapse; margin-top:6px;">
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 6px;">sky</td>
+              <td style="padding:4px 6px; text-align:right; color:var(--muted);">257,570 frames</td>
+              <td style="padding:4px 6px; text-align:right;" class="hl">conf 0.181</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 6px;">office_cubicles</td>
+              <td style="padding:4px 6px; text-align:right; color:var(--muted);">115,986 frames</td>
+              <td style="padding:4px 6px; text-align:right;" class="hl">conf 0.270</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 6px;">indoor</td>
+              <td style="padding:4px 6px; text-align:right; color:var(--muted);">86,611 frames</td>
+              <td style="padding:4px 6px; text-align:right;" class="hl">conf 0.252</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 6px;">airplane_cabin</td>
+              <td style="padding:4px 6px; text-align:right; color:var(--muted);">43,582 frames</td>
+              <td style="padding:4px 6px; text-align:right;" class="hl">conf 0.274</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 6px;">airport_terminal</td>
+              <td style="padding:4px 6px; text-align:right; color:var(--muted);">39,730 frames</td>
+              <td style="padding:4px 6px; text-align:right;" class="hl">conf 0.241</td>
+            </tr>
+          </table>
+        </div>
+        <div class="card orange">
+          <h4>Note on Confidence</h4>
+          <p>Scene confidence values are relatively low (0.18–0.27), reflecting the challenge of classifying frames from a moving robot camera. The stability threshold mitigates low-confidence noise.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 7 — PHASE 2 ══ -->
+<div class="slide" id="slide-7">
+  <div class="slide-header">
+    <span class="section-badge badge-method">4 · Method</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Phase 2 — Context-aware YOLO switching</span>
+    <span class="slide-num">7 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Phase 2: COCO-80 Context Switching</h2>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <p style="font-size:.88rem; color:var(--muted);">When Phase 1 declares a stable scene, <code>_switch_scene()</code> queries <code>ContextManager</code> and reconfigures YOLOWorld v2 with the scene's COCO-80 class subset.</p>
+        <div class="card blue">
+          <h4>YOLOWorld v2 — Classes Mode</h4>
+          <p><code>yolov8s-worldv2.pt</code> encodes class names as CLIP text embeddings. Calling <code>set_classes(["person","chair","laptop",...])</code> re-computes embeddings for all target classes — this is the dominant cost on CPU.</p>
+        </div>
+        <div class="card" style="background:var(--bg2);">
+          <h4>Timing Breakdown (per switch)</h4>
+          <table style="font-size:.8rem; width:100%; border-collapse:collapse; margin-top:6px;">
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:5px 8px; color:var(--muted);">DB lookup (<code>db_query_ms</code>)</td>
+              <td style="padding:5px 8px; text-align:right;" class="hl-g">0.3–4 ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border); background:var(--red-dim);">
+              <td style="padding:5px 8px;"><code>set_classes()</code> CLIP encoding</td>
+              <td style="padding:5px 8px; text-align:right;" class="hl-r">620–12,132 ms</td>
+            </tr>
+            <tr style="font-weight:700;">
+              <td style="padding:5px 8px;">Total average</td>
+              <td style="padding:5px 8px; text-align:right; color:var(--red);">2,703 ms</td>
+            </tr>
+          </table>
+        </div>
+        <div class="card red">
+          <h4>⚠️ Finding: Latency Scales with Class Count</h4>
+          <p>CLIP computes one embedding per class. More target classes = more inference calls = higher <code>set_classes()</code> cost. This was not anticipated from documentation.</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card" style="background:var(--bg2);">
+          <h4>Switch Latency by Number of Classes (avg)</h4>
+          <div style="margin-top:10px;">
+            <div class="lat-row">
+              <span class="lat-label">2 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:13%; background:var(--green);"><span style="color:#fff;">621 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">8 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:42%; background:var(--yellow);"><span style="color:#000;">2,014 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">9 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:52%; background:var(--yellow);"><span style="color:#000;">2,505 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">10 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:56%; background:var(--orange);"><span style="color:#fff;">2,697 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">12 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:66%; background:var(--orange);"><span style="color:#fff;">3,181 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">13 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:76%; background:var(--red);"><span style="color:#fff;">3,665 ms</span></div>
+              </div>
+            </div>
+            <div class="lat-row">
+              <span class="lat-label">17 classes</span>
+              <div class="lat-bar-bg">
+                <div class="lat-bar-fill" style="width:99%; background:var(--red);"><span style="color:#fff;">4,765 ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px 13px; font-size:.8rem;">
+          <strong>Distribution of all 3,355 switches:</strong>
+          <div style="display:flex; gap:8px; margin-top:7px;">
+            <div style="flex:1; text-align:center; background:#0a2015; border-radius:6px; padding:7px 4px; border:1px solid var(--green-dim);">
+              <div style="font-size:1.1rem; font-weight:800; color:var(--green);">12.1%</div>
+              <div style="font-size:.68rem; color:var(--muted);">under 1 s</div>
+            </div>
+            <div style="flex:1; text-align:center; background:#1e160a; border-radius:6px; padding:7px 4px; border:1px solid var(--yellow-dim);">
+              <div style="font-size:1.1rem; font-weight:800; color:var(--yellow);">54.4%</div>
+              <div style="font-size:.68rem; color:var(--muted);">1 s – 3 s</div>
+            </div>
+            <div style="flex:1; text-align:center; background:#1e0505; border-radius:6px; padding:7px 4px; border:1px solid var(--red-dim);">
+              <div style="font-size:1.1rem; font-weight:800; color:var(--red);">33.5%</div>
+              <div style="font-size:.68rem; color:var(--muted);">over 3 s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 8 — CONTEXT DB ══ -->
+<div class="slide" id="slide-8">
+  <div class="slide-header">
+    <span class="section-badge badge-method">4 · Method</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">COCO-80 scene-context database</span>
+    <span class="slide-num">8 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Scene-Context Database: COCO-80</h2>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <p style="font-size:.88rem; color:var(--muted);">The <code>ContextManager</code> maintains a SQLite database mapping every Places365 scene to an appropriate COCO-80 class subset. Seeded automatically from the Places365 CSV at startup.</p>
+        <div class="db-diagram" style="flex:1;">
+          <div class="db-table coco" style="flex:1;">
+            <div class="db-table-header">scene_context (COCO-80)</div>
+            <div class="db-row"><span class="db-col-name">id</span><span class="db-col-type">INTEGER</span><span class="db-col-pk">PK</span></div>
+            <div class="db-row"><span class="db-col-name">scene_name</span><span class="db-col-type">TEXT UNIQUE</span></div>
+            <div class="db-row"><span class="db-col-name">yolo_classes</span><span class="db-col-type">JSON array</span></div>
+            <div class="db-row"><span class="db-col-name">model_file</span><span class="db-col-type">TEXT DEFAULT</span></div>
+          </div>
+        </div>
+        <div class="card" style="background:var(--bg3);">
+          <p style="font-size:.8rem;"><strong>API:</strong> <code>get_context_for_scene(scene, vocabulary='coco80')</code><br/>Fuzzy match: exact → simple_name → substring → fallback to generic</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.07em;">COCO-80 Class Coverage per Scene</div>
+        <table class="vocab-table">
+          <thead>
+            <tr>
+              <th>Scene</th>
+              <th>COCO-80 classes</th>
+              <th>Avg switch_ms</th>
+              <th>Example classes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>sky</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:22px;"></div>2</div></td>
+              <td style="color:var(--green);">621 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">bird, airplane</td>
+            </tr>
+            <tr>
+              <td>lecture_room</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:44px;"></div>8</div></td>
+              <td style="color:var(--yellow);">2,014 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">person, chair, laptop, book</td>
+            </tr>
+            <tr>
+              <td>office_cubicles</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:55px;"></div>10</div></td>
+              <td style="color:var(--orange);">2,697 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">person, chair, laptop, cup, keyboard</td>
+            </tr>
+            <tr>
+              <td>conference_center</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:66px;"></div>12</div></td>
+              <td style="color:var(--orange);">3,122 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">person, chair, bottle, laptop, tie</td>
+            </tr>
+            <tr>
+              <td>airplane_cabin</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:66px;"></div>12</div></td>
+              <td style="color:var(--orange);">3,204 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">person, suitcase, backpack, bottle</td>
+            </tr>
+            <tr>
+              <td>food_court</td>
+              <td><div class="bar-inline"><div class="bar-fill" style="width:94px;"></div>17</div></td>
+              <td style="color:var(--red);">4,765 ms</td>
+              <td style="color:var(--muted); font-size:.75rem;">person, cup, bowl, fork, spoon, pizza...</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card orange">
+          <h4>Key Observation</h4>
+          <p>Scenes with more contextually relevant COCO-80 classes (e.g. food_court: 17) trigger significantly longer switch delays than simple scenes (sky: 2). The CLIP embedding cost is per-class and not parallelised on CPU.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 9 — PHASE 2 LATENCY CHART ══ -->
+<div class="slide" id="slide-9">
+  <div class="slide-header">
+    <span class="section-badge badge-results">5 · Results</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Phase 2 switch latency analysis</span>
+    <span class="slide-num">9 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Phase 2 Switch Latency — Real Measurements</h2>
+    <p style="font-size:.83rem; color:var(--muted);">Source: <code>access.db → inference_history</code> · 3,355 total switches · classes mode · YOLOWorld v2 + COCO-80 · Raspberry Pi 5 CPU</p>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div class="chart-wrap">
+        <canvas id="latencyChart"></canvas>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px; justify-content:flex-start;">
+        <div class="card red" style="border-left:3px solid var(--red);">
+          <h4>Answer to RQ2 — Latency is Class-Count Dependent</h4>
+          <p>CLIP text embedding computation in <code>set_classes()</code> scales with the number of target classes. On Raspberry Pi 5 ARM CPU (no GPU), this costs ~280 ms per class at typical workloads.</p>
+        </div>
+        <div class="card orange" style="border-left:3px solid var(--orange);">
+          <h4>Answer to RQ3 — 3 s Target Partially Met</h4>
+          <p>Scenes with ≤10 classes (65% of switches) meet the 3-second target on average. Scenes with ≥12 classes (conference, airplane, food court) consistently exceed it.</p>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px;">
+          <div style="font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:8px; text-transform:uppercase;">All 3,355 switches summary</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+            <div style="font-size:.8rem;"><span style="color:var(--muted);">Min</span> &nbsp;<strong>0.0 ms</strong> <span style="color:var(--muted); font-size:.72rem;">(cold cache)</span></div>
+            <div style="font-size:.8rem;"><span style="color:var(--muted);">Avg</span> &nbsp;<strong style="color:var(--orange);">2,703 ms</strong></div>
+            <div style="font-size:.8rem;"><span style="color:var(--muted);">Max</span> &nbsp;<strong style="color:var(--red);">12,132 ms</strong></div>
+            <div style="font-size:.8rem;"><span style="color:var(--muted);">Over 3 s</span> &nbsp;<strong style="color:var(--red);">33.5%</strong></div>
+          </div>
+        </div>
+        <div class="card green">
+          <h4>DB Lookup Is Negligible</h4>
+          <p><code>db_query_ms</code> is consistently 0.3–4 ms — the SQLite lookup with B-tree index is not the bottleneck. All latency comes from CLIP embedding computation in <code>set_classes()</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 10 — VOCAB COVERAGE ══ -->
+<div class="slide" id="slide-10">
+  <div class="slide-header">
+    <span class="section-badge badge-results">5 · Results</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">COCO-80 class coverage analysis</span>
+    <span class="slide-num">10 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>COCO-80 Scene Coverage</h2>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div class="chart-wrap">
+        <canvas id="vocabChart"></canvas>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px; justify-content:center;">
+        <div class="stat-row">
+          <div class="stat-box blue" style="flex:1;">
+            <div class="stat-val" style="color:var(--blue); font-size:1.7rem;">80</div>
+            <div class="stat-label">Total COCO-80<br/>classes available</div>
+          </div>
+          <div class="stat-box green" style="flex:1;">
+            <div class="stat-val" style="color:var(--green); font-size:1.7rem;">2–23</div>
+            <div class="stat-label">Classes selected<br/>per scene</div>
+          </div>
+          <div class="stat-box orange" style="flex:1;">
+            <div class="stat-val" style="color:var(--orange); font-size:1.7rem;">~10</div>
+            <div class="stat-label">Avg classes<br/>per scene (COCO)</div>
+          </div>
+        </div>
+        <div class="card blue">
+          <h4>COCO-80 Coverage Tradeoff</h4>
+          <p>Selecting more COCO-80 classes per scene increases detection breadth but directly raises Phase 2 switch latency. The optimal configuration minimises classes while retaining semantic relevance for the scene.</p>
+        </div>
+        <div class="card" style="background:var(--bg2);">
+          <h4>Top Switching Scenes (3,355 switches)</h4>
+          <table style="font-size:.78rem; width:100%; border-collapse:collapse; margin-top:6px;">
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 7px;">office_cubicles</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--muted);">941 switches</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--orange);">avg 2,676 ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 7px;">airport_terminal</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--muted);">561 switches</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--orange);">avg 2,518 ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 7px;">indoor (generic)</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--muted);">390 switches</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--red);">avg 3,763 ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:4px 7px;">sky</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--muted);">370 switches</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--green);">avg 621 ms ✓</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 7px;">food_court</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--muted);">195 switches</td>
+              <td style="padding:4px 7px; text-align:right; color:var(--red);">avg 4,765 ms</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 11 — SYSTEM PERFORMANCE ══ -->
+<div class="slide" id="slide-11">
+  <div class="slide-header">
+    <span class="section-badge badge-results">5 · Results</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">System performance summary</span>
+    <span class="slide-num">11 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>System Performance vs. Targets</h2>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div>
+        <table style="font-size:.82rem; width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--bg3);">
+              <th style="padding:8px 11px; text-align:left; font-size:.75rem; color:var(--muted);">Metric</th>
+              <th style="padding:8px 11px; text-align:right; font-size:.75rem; color:var(--muted);">Target</th>
+              <th style="padding:8px 11px; text-align:right; font-size:.75rem; color:var(--muted);">Measured</th>
+              <th style="padding:8px 7px; text-align:center; font-size:.75rem; color:var(--muted);">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 11px;">Control latency (keypress → motor)</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">&lt;100 ms</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-g">50–80 ms</td>
+              <td style="padding:7px 7px; text-align:center;">✅</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 11px;">Camera capture FPS</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">30 fps</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-g">24–30 fps</td>
+              <td style="padding:7px 7px; text-align:center;">✅</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 11px;">Phase 1 inference (GoogLeNet)</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">~1 Hz</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-g">avg 116.6 ms</td>
+              <td style="padding:7px 7px; text-align:center;">✅</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border); background:#1a0d05;">
+              <td style="padding:7px 11px;"><strong>Phase 2 switch — avg (classes mode)</strong></td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">&lt;3,000 ms</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-r"><strong>2,703 ms</strong></td>
+              <td style="padding:7px 7px; text-align:center;">⚠️</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border); background:#1a0d05;">
+              <td style="padding:7px 11px;">Phase 2 — scenes ≤10 classes</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">&lt;3,000 ms</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-g">~621–2,697 ms</td>
+              <td style="padding:7px 7px; text-align:center;">✅</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border); background:#1a0505;">
+              <td style="padding:7px 11px;">Phase 2 — scenes ≥12 classes</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">&lt;3,000 ms</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-r">3,181–4,765 ms</td>
+              <td style="padding:7px 7px; text-align:center;">❌</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 11px;">MJPEG stream latency</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">low</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-o">500 ms–2 s</td>
+              <td style="padding:7px 7px; text-align:center;">⚠️</td>
+            </tr>
+            <tr>
+              <td style="padding:7px 11px;">WebRTC stream latency (exp.)</td>
+              <td style="padding:7px 11px; text-align:right; color:var(--muted);">low</td>
+              <td style="padding:7px 11px; text-align:right;" class="hl-g">&lt;200 ms</td>
+              <td style="padding:7px 7px; text-align:center;">✅</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card red">
+          <h4>Primary Open Challenge</h4>
+          <p>Phase 2 switch latency for scenes with &gt;10 COCO-80 classes exceeds the 3-second target on Raspberry Pi 5 CPU. The bottleneck is <code>set_classes()</code> CLIP embedding computation, not database access or YOLO inference.</p>
+        </div>
+        <div class="card green">
+          <h4>Teleoperation: All Targets Met</h4>
+          <p>Control latency, sensor polling, camera FPS, and Phase 1 inference all meet or exceed targets. The robot is fully controllable during Phase 2 switch operations — switching runs in a separate thread and does not block movement commands.</p>
+        </div>
+        <div class="card blue">
+          <h4>DB Lookup: Negligible</h4>
+          <p><code>db_query_ms</code> consistently 0.3–4 ms across all 3,355 switches. The ContextManager's B-tree index on <code>scene_name</code> is not the bottleneck at any scale.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 12 — STORAGE ══ -->
+<div class="slide" id="slide-12">
+  <div class="slide-header">
+    <span class="section-badge badge-results">5 · Results</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Storage constraint &amp; extended results</span>
+    <span class="slide-num">12 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Storage Limitation &amp; Cloud-Based Results</h2>
+    <div class="grid2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card orange" style="border-left:3px solid var(--orange);">
+          <h4>⚠️ Current Hardware Constraint</h4>
+          <p>The Raspberry Pi 5 runs from a <strong>microSD card</strong>. The full Objects365 frozen model set (365 scene-specific variants × 4 formats) requires storage that currently exceeds available capacity:</p>
+          <ul class="check-list" style="margin-top:9px; gap:5px;">
+            <li>365 YOLO model files (scene-specific)</li>
+            <li>Multiple export formats per model</li>
+            <li>Estimated total: <span class="hl-o">15–50 GB</span></li>
+          </ul>
+        </div>
+        <div class="card blue">
+          <h4>📦 Procurement Plan — NVMe SSD</h4>
+          <table style="font-size:.79rem; width:100%; border-collapse:collapse; margin-top:7px;">
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:5px 8px; font-weight:600;">M.2 NVMe (M.2 HAT+)</td>
+              <td style="padding:5px 8px; color:var(--green);">~400 MB/s · Recommended</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:5px 8px;">USB 3.0 SSD</td>
+              <td style="padding:5px 8px; color:var(--blue);">Portable, no HAT required</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 8px;">High-speed microSD A2</td>
+              <td style="padding:5px 8px; color:var(--muted);">128–512 GB, minimal change</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:15px;">
+          <h4 style="font-size:.83rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:11px;">Interim: Cloud Experiments</h4>
+          <div style="display:flex; gap:11px;">
+            <div style="flex:1; background:var(--bg3); border-radius:8px; padding:11px; text-align:center; border:1px solid var(--border);">
+              <div style="font-size:1.8rem; margin-bottom:5px;">📁</div>
+              <div style="font-weight:700; font-size:.88rem; color:var(--blue);">Google Drive</div>
+              <div style="font-size:.76rem; color:var(--muted); margin-top:5px; line-height:1.4;">
+                Full model set<br/>
+                Benchmark CSVs<br/>
+                Exported .pt / .onnx files
+              </div>
+            </div>
+            <div style="flex:1; background:var(--bg3); border-radius:8px; padding:11px; text-align:center; border:1px solid var(--border);">
+              <div style="font-size:1.8rem; margin-bottom:5px;">⚡</div>
+              <div style="font-weight:700; font-size:.88rem; color:var(--orange);">Google Colab</div>
+              <div style="font-size:.76rem; color:var(--muted); margin-top:5px; line-height:1.4;">
+                A100 / T4 GPU runtime<br/>
+                Benchmark notebooks<br/>
+                Training scripts
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px; padding:9px; background:var(--bg3); border-radius:7px; font-size:.8rem; color:var(--muted); text-align:center; border:1px solid var(--border);">
+            🔗 &nbsp;Links shared during seminar session
+          </div>
+        </div>
+        <div class="card green">
+          <h4>What's Available On-Device</h4>
+          <p>The core system runs fully on-device: Phase 1 (GoogLeNet), Phase 2 (YOLOWorld v2 + COCO-80), dual camera streaming, full robot control. The storage limitation only affects the <em>extended</em> scene-specific frozen model set.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 13 — FUTURE WORK ══ -->
+<div class="slide" id="slide-13">
+  <div class="slide-header">
+    <span class="section-badge badge-future">6 · Future Work</span>
+    <span style="font-size:.88rem; color:var(--muted); margin-left:8px;">Next steps</span>
+    <span class="slide-num">13 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Future Work</h2>
+    <div class="fw-grid" style="flex:1;">
+      <div class="fw-item" style="border-color:var(--red-dim); background:#1a0505;">
+        <div class="fw-icon">⚡</div>
+        <div>
+          <h4>Reduce set_classes() Latency</h4>
+          <p>The primary bottleneck: CLIP embedding computation for COCO-80 classes on CPU. Strategies: pre-compute and cache all 80 COCO embeddings at startup, batch encode only changed classes, or offload to GPU.</p>
+          <span class="fw-priority fp-high">Highest Priority</span>
+        </div>
+      </div>
+      <div class="fw-item" style="border-color:var(--orange-dim); background:#1e0e05;">
+        <div class="fw-icon">🔥</div>
+        <div>
+          <h4>Vulkan GPU Acceleration</h4>
+          <p>Raspberry Pi 5 VideoCore VII supports Vulkan 1.2 compute. Offloading CLIP encoding and YOLO inference to GPU could reduce Phase 2 switch latency from ~2.7 s to target &lt;500 ms. Exploratory work in <code>vulkan_test.py</code>.</p>
+          <span class="fw-priority fp-high">High Priority</span>
+        </div>
+      </div>
+      <div class="fw-item" style="border-color:var(--orange-dim); background:#1e0e05;">
+        <div class="fw-icon">💾</div>
+        <div>
+          <h4>NVMe SSD Procurement</h4>
+          <p>M.2 HAT+ with NVMe SSD enables full on-device deployment of all 365 scene-specific models and the complete benchmark suite — removing the Google Drive dependency for production use.</p>
+          <span class="fw-priority fp-high">High Priority</span>
+        </div>
+      </div>
+      <div class="fw-item" style="border-color:var(--blue-dim); background:#090f1e;">
+        <div class="fw-icon">🎯</div>
+        <div>
+          <h4>Optimise COCO-80 Class Subsets</h4>
+          <p>Reduce the number of classes per scene to the minimum semantically meaningful set. Scenes with ≤8 classes achieve &lt;2 s switches — pruning food_court from 17 to 8 classes would cut its avg from 4.7 s to ~2 s.</p>
+          <span class="fw-priority fp-medium">Medium Priority</span>
+        </div>
+      </div>
+      <div class="fw-item" style="border-color:var(--blue-dim); background:#090f1e;">
+        <div class="fw-icon">📡</div>
+        <div>
+          <h4>WebRTC Production Hardening</h4>
+          <p>Complete ICE/TURN configuration for non-LAN use. Formalise aiortc error recovery and connection state management to make WebRTC the default stream transport.</p>
+          <span class="fw-priority fp-medium">Medium Priority</span>
+        </div>
+      </div>
+      <div class="fw-item" style="border-color:var(--green-dim); background:#0a130a;">
+        <div class="fw-icon">📐</div>
+        <div>
+          <h4>Full 365-Scene Benchmark</h4>
+          <p>Complete latency profiling for all 365 Places365 scenes with full COCO-80 class mappings. Establish a per-scene latency budget and flag scenes requiring class-count reduction. In progress on Google Colab.</p>
+          <span class="fw-priority fp-inprog">In Progress</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 14 — CONCLUSION ══ -->
+<div class="slide" id="slide-14">
+  <div class="slide-header">
+    <span class="section-badge badge-title">Conclusion</span>
+    <span class="slide-num">14 / 14</span>
+  </div>
+  <div class="slide-body">
+    <h2>Summary &amp; Thank You</h2>
+    <div class="grid2" style="flex:1; gap:14px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;">
+          <h4 style="font-size:.82rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:10px;">Contributions</h4>
+          <ul class="check-list" style="gap:6px;">
+            <li>Two-phase pipeline: GoogLeNet Places365 → COCO-80 YOLOWorld context switch</li>
+            <li>Scene-context database mapping 365 scenes to COCO-80 subsets</li>
+            <li>3,355 real Phase 2 switches profiled — latency scales with class count</li>
+            <li>Full-stack dashboard: React + Flask + Socket.IO + Docker on RPi 5</li>
+            <li>Experimental WebRTC (&lt;200 ms) alongside MJPEG production stream</li>
+          </ul>
+        </div>
+        <div style="background:var(--red-dim); border:1px solid var(--red); border-radius:var(--radius); padding:14px 16px;">
+          <h4 style="font-size:.82rem; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:.07em; margin-bottom:10px;">Key Finding</h4>
+          <p style="font-size:.85rem; line-height:1.5;"><code>set_classes()</code> CLIP embedding on Raspberry Pi 5 CPU averages <strong style="color:var(--red);">2,703 ms</strong> — not the documented ~5–20 ms. Latency scales linearly with class count. The 3 s target is only met for scenes with ≤10 COCO-80 classes.</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;">
+          <h4 style="font-size:.82rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:10px;">Key Numbers (from access.db)</h4>
+          <div class="result-row"><span class="result-metric">Phase 1 avg inference</span><span class="result-val" style="color:var(--green);">116.6 ms</span></div>
+          <div class="result-row"><span class="result-metric">Phase 2 avg switch (classes mode)</span><span class="result-val" style="color:var(--red);">2,703 ms</span></div>
+          <div class="result-row"><span class="result-metric">Phase 2 — sky (2 classes)</span><span class="result-val" style="color:var(--green);">621 ms ✓</span></div>
+          <div class="result-row"><span class="result-metric">Phase 2 — food_court (17 classes)</span><span class="result-val" style="color:var(--red);">4,765 ms ✗</span></div>
+          <div class="result-row"><span class="result-metric">Switches meeting &lt;3 s target</span><span class="result-val" style="color:var(--yellow);">66.5%</span></div>
+          <div class="result-row"><span class="result-metric">Total P1 / P2 records</span><span class="result-val">588K / 3,355</span></div>
+        </div>
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;">
+          <div style="font-size:1.4rem;">🙏</div>
+          <div style="font-size:1rem; font-weight:700;">Thank You — Questions Welcome</div>
+          <div style="font-size:.8rem; color:var(--muted); line-height:1.5;">
+            Full results on Google Drive / Google Colab<br/>
+            Source: PENS-KAIT 2026 · <code>docs/seminar/</code>
+          </div>
+          <div style="display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:3px;">
+            <span class="title-tag">Muhammad Tsaqif Mukhayyar</span>
+            <span class="title-tag">PENS × KAIT · March 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #deck -->
+
+<!-- ── Navigation ── -->
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" onclick="go(-1)" title="Previous (←)">◀</button>
+  <div class="nav-dots" id="nav-dots"></div>
+  <span class="nav-count" id="nav-count">1 / 14</span>
+  <button class="nav-btn" id="btn-next" onclick="go(1)" title="Next (→)">▶</button>
+</div>
+
+<script>
+const TOTAL = 14;
+let current = 1;
+
+const dotsEl = document.getElementById('nav-dots');
+for (let i = 1; i <= TOTAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'nav-dot' + (i === 1 ? ' active' : '');
+  d.title = 'Slide ' + i;
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+}
+
+function goTo(n) {
+  if (n < 1 || n > TOTAL) return;
+  const prev = document.getElementById('slide-' + current);
+  const next = document.getElementById('slide-' + n);
+  prev.classList.remove('active');
+  prev.classList.add(n > current ? 'prev' : '');
+  setTimeout(() => prev.classList.remove('prev'), 400);
+  next.classList.add('active');
+  current = n;
+  document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i+1 === current));
+  document.getElementById('nav-count').textContent = current + ' / ' + TOTAL;
+  document.getElementById('btn-prev').disabled = current === 1;
+  document.getElementById('btn-next').disabled = current === TOTAL;
+}
+
+function go(delta) { goTo(current + delta); }
+
+document.addEventListener('keydown', e => {
+  if      (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+  else if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                   { e.preventDefault(); go(-1); }
+  else if (e.key === 'Home') goTo(1);
+  else if (e.key === 'End')  goTo(TOTAL);
+});
+
+let touchX = 0;
+document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+});
+
+document.getElementById('btn-prev').disabled = true;
+
+/* ── Phase 2 Latency Chart (Slide 9) ── */
+new Chart(document.getElementById('latencyChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['2 classes\n(sky)', '8 classes\n(lecture)', '9 classes\n(airport)', '10 classes\n(office)', '12 classes\n(conference)', '13 classes\n(classroom)', '17 classes\n(food_court)'],
+    datasets: [{
+      label: 'Avg switch_ms (set_classes)',
+      data: [621, 2014, 2505, 2697, 3181, 3665, 4765],
+      backgroundColor: [
+        'rgba(63,185,80,0.75)',
+        'rgba(210,153,34,0.75)',
+        'rgba(210,153,34,0.75)',
+        'rgba(240,136,62,0.75)',
+        'rgba(240,136,62,0.75)',
+        'rgba(248,81,73,0.75)',
+        'rgba(248,81,73,0.75)',
+      ],
+      borderColor: [
+        'rgba(63,185,80,1)',
+        'rgba(210,153,34,1)',
+        'rgba(210,153,34,1)',
+        'rgba(240,136,62,1)',
+        'rgba(240,136,62,1)',
+        'rgba(248,81,73,1)',
+        'rgba(248,81,73,1)',
+      ],
+      borderWidth: 1.5,
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      annotation: {},
+      tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.y.toFixed(0) + ' ms avg' } }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8b949e', font: { size: 10 } }
+      },
+      y: {
+        grid: { color: 'rgba(48,54,61,0.8)' },
+        ticks: { color: '#8b949e', font: { size: 11 },
+                 callback: v => v >= 1000 ? (v/1000).toFixed(1)+'s' : v+'ms' },
+        title: { display: true, text: 'Avg set_classes() latency', color: '#8b949e', font: { size: 11 } },
+      }
+    }
+  }
+});
+
+/* ── COCO-80 Coverage Chart (Slide 10) ── */
+new Chart(document.getElementById('vocabChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['sky', 'lecture_room', 'airport_terminal', 'office_cubicles', 'airplane_cabin', 'conference_center', 'food_court'],
+    datasets: [
+      {
+        label: 'COCO-80 classes',
+        data: [2, 8, 9, 10, 12, 12, 17],
+        backgroundColor: 'rgba(79,142,247,0.75)',
+        borderColor: 'rgba(79,142,247,1)',
+        borderWidth: 1.5,
+        borderRadius: 5,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Avg switch_ms',
+        data: [621, 2014, 2518, 2676, 3204, 3122, 4765],
+        backgroundColor: 'rgba(248,81,73,0.55)',
+        borderColor: 'rgba(248,81,73,1)',
+        borderWidth: 1.5,
+        borderRadius: 5,
+        type: 'line',
+        yAxisID: 'y2',
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: 'rgba(248,81,73,1)',
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#8b949e', font: { size: 11 } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.datasetIndex === 0
+            ? ' ' + ctx.parsed.y + ' classes'
+            : ' ' + ctx.parsed.y.toFixed(0) + ' ms avg'
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 30 } },
+      y: {
+        position: 'left',
+        grid: { color: 'rgba(48,54,61,0.8)' },
+        ticks: { color: '#8b949e', font: { size: 11 } },
+        title: { display: true, text: 'COCO-80 classes', color: '#4f8ef7', font: { size: 11 } }
+      },
+      y2: {
+        position: 'right',
+        grid: { display: false },
+        ticks: { color: '#8b949e', font: { size: 11 },
+                 callback: v => v >= 1000 ? (v/1000).toFixed(1)+'s' : v+'ms' },
+        title: { display: true, text: 'Avg switch latency', color: '#f85149', font: { size: 11 } }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YOLO Inference Log — PENS-KAIT 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color:   #0f172a;
+            --panel-bg:   #1e293b;
+            --text-main:  #f8fafc;
+            --text-sub:   #94a3b8;
+            --accent:     #3b82f6;
+            --success:    #22c55e;
+            --border:     #334155;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; }
+
+        .subtitle { color: var(--text-sub); font-size: 0.85rem; margin-top: 4px; }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--accent);
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(59,130,246,0.1);
+            color: var(--accent);
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid;
+            transition: opacity .15s;
+        }
+        .btn:hover { opacity: .85; }
+        .btn-green  { background: rgba(34,197,94,0.12);  border-color: rgba(34,197,94,0.35);  color: #4ade80; }
+        .btn-red    { background: rgba(239,68,68,0.1);   border-color: rgba(239,68,68,0.3);   color: #f87171; }
+        .btn-blue   { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); color: #60a5fa; }
+        .btn-ghost  { background: rgba(255,255,255,0.05); border-color: var(--border); color: var(--text-sub); }
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .filter-bar label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.72rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .filter-bar input,
+        .filter-bar select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            min-width: 140px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0,0,0,0.25);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid;
+        }
+
+        .stat-card-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            margin-bottom: 10px;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+
+        .stat-row .lbl { color: var(--text-sub); font-size: 0.6rem; margin-bottom: 2px; }
+        .stat-row .val { font-weight: 700; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            color: var(--text-main);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            white-space: nowrap;
+        }
+
+        thead th.r { text-align: right; }
+
+        tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+        tbody td { padding: 5px 10px; color: var(--text-sub); }
+        tbody td.r { text-align: right; }
+        tbody td.main { color: var(--text-main); }
+
+        .chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        #total-count { font-weight: 700; color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>🗂 YOLO Inference Log</h1>
+        <div class="subtitle">PENS-KAIT 2026 · YOLOv8s-WorldV2 vs YOLOv8s Base — per-inference comparison records</div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-red"   onclick="clearLog()">🗑 Clear Log</button>
+        <a href="/research" class="btn btn-ghost">← Back to Research</a>
+    </div>
+</header>
+
+<!-- ── Aggregate Stats ─────────────────────────────────────────────── -->
+<div class="stats-grid" id="stats-grid">
+    <div class="stat-card" style="border-color:rgba(59,130,246,0.25); grid-column: span 2; display:flex; align-items:center; justify-content:center; min-height:80px;">
+        <span style="color:var(--text-sub); font-size:0.85rem;">Loading stats…</span>
+    </div>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────── -->
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">Records</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <span class="badge" id="showing-badge">—</span>
+            <button class="btn btn-blue" onclick="applyFilters()">Apply</button>
+            <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <label>
+            Model
+            <select id="f-model">
+                <option value="">All</option>
+                <option value="worldv2">YOLOWorld (worldv2)</option>
+                <option value="base">YOLOv8s Base</option>
+            </select>
+        </label>
+        <label>
+            Scene
+            <input id="f-scene" type="text" placeholder="e.g. kitchen" list="scene-datalist">
+            <datalist id="scene-datalist"></datalist>
+        </label>
+        <label>
+            Since (ISO date)
+            <input id="f-since" type="datetime-local">
+        </label>
+        <label>
+            Limit
+            <select id="f-limit">
+                <option value="100">100</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+                <option value="2000">2000</option>
+            </select>
+        </label>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Timestamp</th>
+                    <th>Model</th>
+                    <th>Scene</th>
+                    <th class="r">Pre ms</th>
+                    <th class="r">Infer ms</th>
+                    <th class="r">Post ms</th>
+                    <th class="r">Total ms</th>
+                    <th class="r">imgsz</th>
+                    <th class="r">Det</th>
+                    <th class="r">Avg Conf</th>
+                    <th>Detected Objects</th>
+                </tr>
+            </thead>
+            <tbody id="log-tbody">
+                <tr><td colspan="12" style="text-align:center; padding:24px; color:var(--text-sub);">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <span>Total in selection: <span id="total-count">—</span></span>
+        <span style="margin-left:auto; color:var(--text-sub); font-size:0.72rem;">
+            Auto-refreshes every 10 s · <span id="last-refresh">—</span>
+        </span>
+    </div>
+</div>
+
+<script>
+const MODEL_META = {
+    worldv2: { label: 'YOLOWorld', bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa', cardBorder: 'rgba(59,130,246,0.3)'  },
+    base:    { label: 'YOLOv8s',   bg: 'rgba(167,139,250,0.18)', color: '#a78bfa', cardBorder: 'rgba(167,139,250,0.3)' },
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmtTime(ts) {
+    if (!ts) return '—';
+    return ts.replace('T', ' ').replace('Z', '').replace(/\.\d+$/, '');
+}
+
+function inferColor(ms) {
+    return ms < 100 ? '#4ade80' : ms < 200 ? '#fbbf24' : '#f87171';
+}
+
+// ── Stats cards ───────────────────────────────────────────────────────────────
+function renderStats(stats) {
+    const grid = document.getElementById('stats-grid');
+    const keys = Object.keys(stats);
+    if (!keys.length) {
+        grid.innerHTML = '<div style="color:var(--text-sub);font-size:0.85rem;padding:16px;">No data recorded yet. Start inference on the Research page.</div>';
+        return;
+    }
+    grid.innerHTML = keys.map(k => {
+        const s  = stats[k];
+        const mc = MODEL_META[k] || { label: k, color: 'var(--text-sub)', bg: 'rgba(255,255,255,0.06)', cardBorder: 'rgba(255,255,255,0.1)' };
+        return `<div class="stat-card" style="border-color:${mc.cardBorder};">
+            <div class="stat-card-title" style="color:${mc.color};">${mc.label}</div>
+            <div class="stat-row">
+                <div><div class="lbl">Samples</div><div class="val" style="color:var(--text-main);">${s.samples}</div></div>
+                <div><div class="lbl">Avg Infer</div><div class="val" style="color:${mc.color};">${s.avg_inference_ms} ms</div></div>
+                <div><div class="lbl">Min / Max</div><div class="val" style="color:var(--text-main);">${s.min_inference_ms} / ${s.max_inference_ms}</div></div>
+                <div><div class="lbl">Avg Det</div><div class="val" style="color:var(--text-main);">${parseFloat(s.avg_detections).toFixed(1)}</div></div>
+            </div>
+            <div class="stat-row" style="margin-top:8px;">
+                <div><div class="lbl">Avg Total</div><div class="val" style="color:var(--text-main);">${s.avg_total_ms} ms</div></div>
+                <div><div class="lbl">Avg Conf</div><div class="val" style="color:var(--text-main);">${s.avg_confidence > 0 ? (s.avg_confidence * 100).toFixed(1) + '%' : '—'}</div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Table rows ────────────────────────────────────────────────────────────────
+function renderRow(r) {
+    const mc    = MODEL_META[r.model_key] || { label: r.model_key, bg: 'rgba(255,255,255,0.06)', color: 'var(--text-sub)' };
+    const conf  = r.avg_conf > 0 ? (r.avg_conf * 100).toFixed(1) + '%' : '—';
+    const scene = r.scene ? r.scene.replace(/_/g, ' ') : '—';
+
+    // detections is a JSON array of class-name strings, e.g. ["person","car","person"]
+    let detList = '—';
+    try {
+        const arr = typeof r.detections === 'string' ? JSON.parse(r.detections) : (r.detections || []);
+        if (arr.length > 0) {
+            // count occurrences, then render as "person×2, car×1"
+            const counts = {};
+            arr.forEach(n => { counts[n] = (counts[n] || 0) + 1; });
+            detList = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([n, c]) => c > 1 ? `${n}<span style="color:var(--text-sub);">×${c}</span>` : n)
+                .join(', ');
+        }
+    } catch (_) {}
+
+    return `<tr>
+        <td class="main">${r.id}</td>
+        <td style="font-family:monospace; font-size:0.68rem; white-space:nowrap;">${fmtTime(r.ts)}</td>
+        <td><span class="chip" style="background:${mc.bg}; color:${mc.color};">${mc.label}</span></td>
+        <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${scene}">${scene}</td>
+        <td class="r">${r.preprocess_ms}</td>
+        <td class="r main" style="font-weight:700; color:${inferColor(r.inference_ms)};">${r.inference_ms}</td>
+        <td class="r">${r.postprocess_ms}</td>
+        <td class="r">${r.total_ms}</td>
+        <td class="r">${r.imgsz}</td>
+        <td class="r main">${r.detection_count}</td>
+        <td class="r">${conf}</td>
+        <td style="max-width:260px; font-size:0.7rem; color:var(--text-main);">${detList}</td>
+    </tr>`;
+}
+
+// ── Fetch helpers ─────────────────────────────────────────────────────────────
+function buildQuery() {
+    const p = new URLSearchParams();
+    const model = document.getElementById('f-model').value;
+    const scene = document.getElementById('f-scene').value.trim();
+    const since = document.getElementById('f-since').value;
+    const limit = document.getElementById('f-limit').value;
+    if (model) p.set('model', model);
+    if (scene) p.set('scene', scene);
+    if (since) p.set('since', since.replace('T', 'T') + ':00');
+    if (limit) p.set('limit', limit);
+    return p.toString();
+}
+
+function loadStats() {
+    const model = document.getElementById('f-model').value;
+    const since = document.getElementById('f-since').value;
+    const p = new URLSearchParams();
+    if (model) p.set('model', model);
+    if (since) p.set('since', since + ':00');
+    fetch('/api/yolo-log/stats?' + p.toString())
+        .then(r => r.json()).then(renderStats).catch(() => {});
+}
+
+function loadRows() {
+    const qs = buildQuery();
+    fetch('/api/yolo-log?' + qs)
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('log-tbody');
+            const badge = document.getElementById('showing-badge');
+            const total = document.getElementById('total-count');
+            const ts    = document.getElementById('last-refresh');
+            if (!data.records || data.records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:24px; color:var(--text-sub);">No records match the current filters.</td></tr>';
+                if (badge) badge.textContent = '0 rows';
+                if (total) total.textContent = '0';
+            } else {
+                tbody.innerHTML = data.records.map(renderRow).join('');
+                if (badge) badge.textContent = `${data.count} rows`;
+                if (total) total.textContent = data.count;
+                // populate scene datalist from results
+                const scenes = [...new Set(data.records.map(r => r.scene).filter(Boolean))].sort();
+                const dl = document.getElementById('scene-datalist');
+                if (dl) dl.innerHTML = scenes.map(s => `<option value="${s}">`).join('');
+            }
+            if (ts) ts.textContent = new Date().toLocaleTimeString();
+        })
+        .catch(() => {});
+}
+
+function refresh() { loadStats(); loadRows(); }
+
+function applyFilters() { refresh(); }
+
+function resetFilters() {
+    document.getElementById('f-model').value = '';
+    document.getElementById('f-scene').value = '';
+    document.getElementById('f-since').value = '';
+    document.getElementById('f-limit').value = '100';
+    refresh();
+}
+
+function exportCSV() {
+    window.location.href = '/api/yolo-log/export.csv?' + buildQuery();
+}
+
+function clearLog() {
+    if (!confirm('Delete ALL rows in the YOLO comparison log? This cannot be undone.')) return;
+    fetch('/api/yolo-log/clear', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { alert(`Deleted ${d.deleted} rows.`); refresh(); })
+        .catch(() => alert('Clear failed — are you authenticated?'));
+}
+
+// Initial load + auto-refresh every 10 s
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

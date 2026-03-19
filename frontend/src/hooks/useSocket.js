@@ -27,6 +27,8 @@ export function useSocket() {
     yolo_available: false,
     detections: [],
   });
+  const [alertRules, setAlertRules] = useState([]);
+  const [triggeredAlerts, setTriggeredAlerts] = useState({});
 
   useEffect(() => {
     const socket = io({ transports: ['polling', 'websocket'], upgrade: true });
@@ -39,6 +41,19 @@ export function useSocket() {
     socket.on('detection_state', (data) => setDetectionState(data));
     socket.on('detection_results', (results) => {
       setDetectionState(prev => ({ ...prev, detections: results }));
+    });
+
+    // Alert rules events
+    socket.on('alert_rules_state', (data) => setAlertRules(data.rules || []));
+    socket.on('alert_triggered', (data) => {
+      setTriggeredAlerts(prev => ({ ...prev, [data.rule_id]: data }));
+    });
+    socket.on('alert_clear', (data) => {
+      setTriggeredAlerts(prev => {
+        const next = { ...prev };
+        delete next[data.rule_id];
+        return next;
+      });
     });
 
     // Auth events
@@ -63,5 +78,5 @@ export function useSocket() {
     socketRef.current?.emit('authenticate', { password });
   }, []);
 
-  return { connected, authenticated, authError, status, sensors, detectionState, emit, authenticate };
+  return { connected, authenticated, authError, status, sensors, detectionState, alertRules, triggeredAlerts, emit, authenticate };
 }

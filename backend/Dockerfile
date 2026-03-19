@@ -1,10 +1,16 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-# System deps for OpenCV + camera + I2C support
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Add Raspberry Pi repository for rpicam-apps
+RUN apt-get update && apt-get install -y --no-install-recommends wget gnupg \
+    && echo "deb [trusted=yes] http://archive.raspberrypi.com/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list \
+    && apt-get update --allow-insecure-repositories
+
+# System deps for OpenCV + camera + I2C support + Pi Camera apps
+RUN apt-get install -y --allow-unauthenticated --no-install-recommends \
     libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
     i2c-tools \
     git \
+    rpicam-apps \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

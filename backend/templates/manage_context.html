@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Context DB — PENS-KAIT 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0f172a;
+      --panel:    #1e293b;
+      --panel2:   #162032;
+      --border:   #334155;
+      --text:     #f8fafc;
+      --sub:      #94a3b8;
+      --accent:   #6c5ce7;
+      --accent2:  #a29bfe;
+      --success:  #22c55e;
+      --danger:   #ef4444;
+      --warn:     #f59e0b;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px 24px;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    header .sub { color: var(--sub); font-size: 0.85rem; margin-top: 3px; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-links a {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      background: rgba(255,255,255,0.05);
+      color: var(--sub);
+      border: 1px solid var(--border);
+      transition: all .15s;
+    }
+    .nav-links a:hover { background: rgba(108,92,231,0.15); color: var(--accent2); border-color: rgba(108,92,231,0.35); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+    .search-wrap input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute;
+      left: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--sub);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .count-badge {
+      background: rgba(108,92,231,0.15);
+      color: var(--accent2);
+      border: 1px solid rgba(108,92,231,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .btn-danger  { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+    .btn-sm { padding: 4px 10px; font-size: 0.76rem; }
+    .btn-ghost { background: rgba(255,255,255,0.05); color: var(--sub); border: 1px solid var(--border); }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    thead th {
+      background: var(--panel);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--sub);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .scene-name {
+      font-weight: 600;
+      color: var(--accent2);
+      white-space: nowrap;
+    }
+    .model-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(34,197,94,0.12);
+      color: var(--success);
+      border: 1px solid rgba(34,197,94,0.25);
+      white-space: nowrap;
+    }
+    .class-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-width: 500px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      background: rgba(108,92,231,0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(108,92,231,0.2);
+      white-space: nowrap;
+    }
+    .pill-count {
+      font-size: 0.7rem;
+      color: var(--sub);
+      padding: 2px 6px;
+    }
+    .actions-cell { white-space: nowrap; }
+
+    /* ── Edit modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid rgba(108,92,231,0.25);
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 18px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--sub);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .field input[type="text"],
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.82rem;
+      outline: none;
+      font-family: inherit;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+    .field select option { background: #1a2035; }
+    .field textarea { resize: vertical; min-height: 90px; }
+
+    /* class tag editor */
+    .tag-editor {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 48px;
+      cursor: text;
+    }
+    .tag-editor:focus-within { border-color: var(--accent); }
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      background: rgba(108,92,231,0.2);
+      color: var(--accent2);
+      border: 1px solid rgba(108,92,231,0.3);
+      white-space: nowrap;
+    }
+    .tag-remove {
+      background: none;
+      border: none;
+      color: var(--accent2);
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.8rem;
+      line-height: 1;
+      opacity: .6;
+      transition: opacity .1s;
+    }
+    .tag-remove:hover { opacity: 1; }
+    .tag-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.8rem;
+      min-width: 120px;
+      flex: 1;
+      font-family: inherit;
+    }
+    .tag-hint { font-size: 0.7rem; color: var(--sub); margin-top: 4px; }
+
+    /* vocab tabs */
+    .vocab-tabs {
+      display: flex;
+      gap: 6px;
+    }
+    .vocab-tab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--sub);
+      transition: all .15s;
+    }
+    .vocab-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border-color: transparent;
+    }
+    .vocab-tab:not(.active):hover {
+      background: rgba(108,92,231,0.15);
+      color: var(--accent2);
+      border-color: rgba(108,92,231,0.35);
+    }
+
+    /* quick-add class list */
+    .coco-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+      max-height: 140px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .coco-btn {
+      padding: 3px 9px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--sub);
+      transition: all .12s;
+      white-space: nowrap;
+    }
+    .coco-btn:hover   { background: rgba(108,92,231,0.15); color: var(--accent2); border-color: rgba(108,92,231,0.3); }
+    .coco-btn.present { background: rgba(108,92,231,0.2); color: var(--accent2); border-color: rgba(108,92,231,0.35); }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+      justify-content: flex-end;
+    }
+
+    /* ── New scene form ── */
+    .add-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .add-section h2 { margin: 0 0 14px; font-size: 0.9rem; color: var(--sub); text-transform: uppercase; letter-spacing: .4px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px; z-index: 999;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok   { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+    #toast.err  { background: rgba(239,68,68,0.15); color: var(--danger);  border: 1px solid rgba(239,68,68,0.3); }
+
+    /* ── Loading ── */
+    .loading { color: var(--sub); font-size: 0.85rem; padding: 40px; text-align: center; }
+
+    /* ── Login overlay ── */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: var(--panel);
+      border: 1px solid rgba(108,92,231,0.3);
+      border-radius: 18px;
+      padding: 36px 32px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .login-icon { font-size: 2.4rem; margin-bottom: 10px; }
+    .login-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 4px; }
+    .login-sub { font-size: 0.8rem; color: var(--sub); margin-bottom: 24px; }
+    .login-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      margin-bottom: 12px;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    .login-input:focus { border-color: var(--accent); }
+    .login-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .15s;
+    }
+    .login-btn:hover { filter: brightness(1.12); }
+    .login-err {
+      font-size: 0.78rem;
+      color: var(--danger);
+      margin-top: 10px;
+      min-height: 1.1em;
+    }
+  </style>
+</head>
+<body>
+
+{% if show_login %}
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-icon">🔒</div>
+    <div class="login-title">Context DB Manager</div>
+    <div class="login-sub">Enter admin password to continue</div>
+    <input type="password" class="login-input" id="loginInput" placeholder="Password"
+           onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()">Unlock</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+{% endif %}
+
+<header>
+  <div>
+    <h1>Context DB Manager</h1>
+    <div class="sub">Edit scene → YOLO class mappings &amp; model assignments</div>
+  </div>
+  <nav class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/research">Research</a>
+    {% if not show_login %}
+    <a href="#" onclick="doLogout(); return false;" style="color:#ef4444;border-color:rgba(239,68,68,0.3)">🔓 Logout</a>
+    {% endif %}
+  </nav>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Filter scenes…" oninput="onSearch()">
+  </div>
+  <!-- Vocab tabs -->
+  <div class="vocab-tabs">
+    <button class="vocab-tab active" id="tab-coco80" onclick="switchVocab('coco80')">COCO 80</button>
+    <button class="vocab-tab" id="tab-objects365" onclick="switchVocab('objects365')">Objects365</button>
+  </div>
+  <span class="count-badge" id="countBadge">— scenes</span>
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add Scene</button>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <table id="sceneTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Scene Name</th>
+        <th>Model</th>
+        <th>Classes <span style="font-weight:400;text-transform:none">(count)</span></th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="sceneBody">
+      <tr><td colspan="5" class="loading">Loading…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Edit / Add Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Edit Scene</div>
+
+    <div class="field" id="nameFieldWrap">
+      <label>Scene Name</label>
+      <input type="text" id="modalSceneName" placeholder="e.g. office_building">
+    </div>
+
+    <div class="field">
+      <label>Model File</label>
+      <select id="modalModel"></select>
+    </div>
+
+    <div class="field">
+      <label>YOLO Classes</label>
+      <div class="tag-editor" id="tagEditor" onclick="document.getElementById('tagInput').focus()">
+        <!-- tags injected here -->
+        <input type="text" id="tagInput" class="tag-input" placeholder="type &amp; press Enter or comma…">
+      </div>
+      <div class="tag-hint">Press <kbd>Enter</kbd> or <kbd>,</kbd> to add · Click × to remove</div>
+    </div>
+
+    <div class="field">
+      <label id="quickAddLabel">Quick-add from COCO 80</label>
+      <div class="coco-picker" id="cocoPicker"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const COCO80 = [
+  'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat',
+  'traffic light','fire hydrant','stop sign','parking meter','bench','bird','cat',
+  'dog','horse','sheep','cow','elephant','bear','zebra','giraffe','backpack',
+  'umbrella','handbag','tie','suitcase','frisbee','skis','snowboard','sports ball',
+  'kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket',
+  'bottle','wine glass','cup','fork','knife','spoon','bowl','banana','apple',
+  'sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake','chair',
+  'couch','potted plant','bed','dining table','toilet','tv','laptop','mouse',
+  'remote','keyboard','cell phone','microwave','oven','toaster','sink',
+  'refrigerator','book','clock','vase','scissors','teddy bear','hair drier',
+  'toothbrush'
+];
+
+const OBJ365 = [
+  'person','sneakers','chair','other shoes','hat','car','lamp','glasses','bottle',
+  'desk','cup','street lights','cabinet','handbag','bracelet','plate',
+  'picture frame','helmet','book','gloves','storage box','boat','leather shoes',
+  'flower','bench','potted plant','bowl','flag','pillow','boots','vase',
+  'microphone','necklace','ring','suv','wine glass','belt','monitor','backpack',
+  'umbrella','traffic light','speaker','watch','tie','trash can','slippers',
+  'bicycle','stool','barrel','van','couch','sandals','basket','drum','pen','bus',
+  'bird','high heels','motorcycle','guitar','carpet','cell phone','bread','camera',
+  'canned food','pots','padlock','bag','microwave','surfboard','skis','suit','pig',
+  'laptop','violin','fried egg','volleyball','tray','fishing rod','horse',
+  'cutting board','tennis racket','wheelchair','folder','dog','spoon','clock',
+  'pot','elephant','soccer ball','basketball','keyboard','towel',
+  'machinery vehicle','cow','tv','faucet','candle','stuffed animal','gas stove',
+  'cake','camel','sheep','zebra','lemon','duck','banana','lantern','cat',
+  'pitcher','airplane','watermelon','grape','sushi','skateboard','strawberry',
+  'bow tie','face mask','seafood','cookies','orange','pasta','pie','coconut',
+  'polar bear','koala','seal','rabbit','frog','eagle','owl','apple','mango',
+  'kiwi','avocado','broccoli','onion','tomato','corn','carrot','garlic',
+  'peppers','potato','cucumber','cabbage','eggplant','pumpkin','pear','peach',
+  'plum','cherry','mushroom','pineapple','hamburger','pizza','hot dog',
+  'french fries','fried chicken','ice cream','donut','waffle','sandwich','rice',
+  'noodles','dumplings','sausage','steak','lobster','shrimp','crab','tofu','egg',
+  'milk','juice','tea','coffee','beer','wine','cocktail','kettle','blender',
+  'toaster','refrigerator','washing machine','vacuum cleaner','iron','fan',
+  'air conditioner','tablet','printer','router','headphones','remote control',
+  'game controller','projector','whiteboard','blackboard','pencil case','ruler',
+  'eraser','stapler','scissors','tape','marker','notebook','magazine','newspaper',
+  'suitcase','wallet','key','lock','safe','shelf','drawer','wardrobe','bed',
+  'blanket','mattress','curtain','mirror','rug','sink','toilet','bathtub',
+  'shower','soap','toothbrush','toothpaste','shampoo','razor','comb','lipstick',
+  'medicine','bandage','thermometer','stethoscope','syringe','crutch','firework',
+  'balloon','kite','frisbee','baseball','football','rugby ball','golf club',
+  'golf ball','boxing gloves','medal','trophy','map','binoculars','hammer',
+  'screwdriver','wrench','pliers','saw','drill','paintbrush','palette','piano',
+  'trumpet','flute','saxophone','harmonica','ukulele','traffic cone','road sign',
+  'parking meter','fire hydrant','mailbox','fountain','statue','train','truck',
+  'stop sign','fork','knife'
+];
+
+let scenes = [];          // current page data from server
+let editingId = null;     // null = add new, number = update
+let tagSet = new Set();   // current tags in modal
+let modelOptions = [];    // available .pt/.onnx files
+let currentVocab = 'coco80'; // 'coco80' or 'objects365'
+
+// ── Fetch helpers ──────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  const json = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, json };
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+// ── Load models list ───────────────────────────────────────────────────────
+async function loadModels() {
+  const { ok, json } = await api('GET', '/api/context/models');
+  if (ok) modelOptions = json;
+}
+
+// ── Vocab switcher ─────────────────────────────────────────────────────────
+function switchVocab(vocab) {
+  currentVocab = vocab;
+  document.getElementById('tab-coco80').classList.toggle('active', vocab === 'coco80');
+  document.getElementById('tab-objects365').classList.toggle('active', vocab === 'objects365');
+  document.getElementById('searchInput').value = '';
+  loadScenes('', vocab);
+}
+
+// ── Load scenes ────────────────────────────────────────────────────────────
+async function loadScenes(q = '', vocab = currentVocab) {
+  let url = `/api/context/scenes?vocab=${vocab}`;
+  if (q) url += `&q=${encodeURIComponent(q)}`;
+  const { ok, json } = await api('GET', url);
+  if (!ok) { toast('Failed to load scenes', 'err'); return; }
+  scenes = json;
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('sceneBody');
+  document.getElementById('countBadge').textContent = `${scenes.length} scene${scenes.length !== 1 ? 's' : ''}`;
+  if (!scenes.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">No scenes found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = scenes.map(s => {
+    const cls = JSON.parse(s.yolo_classes || '[]');
+    const pills = cls.slice(0, 6).map(c => `<span class="pill">${c}</span>`).join('');
+    const more = cls.length > 6 ? `<span class="pill-count">+${cls.length - 6} more</span>` : '';
+    return `<tr>
+      <td style="color:var(--sub);font-size:.72rem">${s.id}</td>
+      <td class="scene-name">${s.scene_name}</td>
+      <td><span class="model-badge">${s.model_file}</span></td>
+      <td>
+        <div class="class-pills">${pills}${more}</div>
+        <div style="font-size:.68rem;color:var(--sub);margin-top:3px">${cls.length} class${cls.length !== 1 ? 'es' : ''}</div>
+      </td>
+      <td class="actions-cell">
+        <button class="btn btn-sm btn-primary" onclick="openEditModal(${s.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteScene(${s.id}, '${s.scene_name.replace(/'/g, "\\'")}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+let searchTimer;
+function onSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadScenes(document.getElementById('searchInput').value, currentVocab), 250);
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────
+function populateModelSelect(current) {
+  const sel = document.getElementById('modalModel');
+  sel.innerHTML = modelOptions.map(m =>
+    `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`
+  ).join('');
+  if (!modelOptions.includes(current)) {
+    sel.innerHTML = `<option value="${current}" selected>${current}</option>` + sel.innerHTML;
+  }
+}
+
+function renderTags() {
+  const editor = document.getElementById('tagEditor');
+  const input = document.getElementById('tagInput');
+  [...editor.querySelectorAll('.tag-item')].forEach(el => el.remove());
+  const frag = document.createDocumentFragment();
+  tagSet.forEach(tag => {
+    const span = document.createElement('span');
+    span.className = 'tag-item';
+    span.innerHTML = `${tag}<button class="tag-remove" onclick="removeTag('${tag.replace(/'/g,"\\'")}')">×</button>`;
+    frag.appendChild(span);
+  });
+  editor.insertBefore(frag, input);
+  // update coco picker highlights
+  document.querySelectorAll('.coco-btn').forEach(btn => {
+    btn.classList.toggle('present', tagSet.has(btn.dataset.cls));
+  });
+}
+
+function removeTag(tag) { tagSet.delete(tag); renderTags(); }
+
+function addTag(raw) {
+  raw.split(/[\s,]+/).map(t => t.trim().toLowerCase()).filter(Boolean).forEach(t => tagSet.add(t));
+  renderTags();
+}
+
+function rebuildPicker(vocab) {
+  const classList = vocab === 'objects365' ? OBJ365 : COCO80;
+  const label = vocab === 'objects365' ? 'Quick-add from Objects365' : 'Quick-add from COCO 80';
+  document.getElementById('quickAddLabel').textContent = label;
+  const picker = document.getElementById('cocoPicker');
+  picker.innerHTML = classList.map(c =>
+    `<button class="coco-btn" data-cls="${c}" onclick="toggleCoco('${c.replace(/'/g, "\\'")}')">${c}</button>`
+  ).join('');
+  // re-highlight present tags
+  document.querySelectorAll('.coco-btn').forEach(btn => {
+    btn.classList.toggle('present', tagSet.has(btn.dataset.cls));
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Tag input key handling
+  document.getElementById('tagInput').addEventListener('keydown', e => {
+    const val = e.target.value.trim();
+    if ((e.key === 'Enter' || e.key === ',') && val) {
+      e.preventDefault();
+      addTag(val);
+      e.target.value = '';
+    } else if (e.key === 'Backspace' && !val && tagSet.size) {
+      const last = [...tagSet].pop();
+      removeTag(last);
+    }
+  });
+  document.getElementById('tagInput').addEventListener('blur', e => {
+    const val = e.target.value.trim();
+    if (val) { addTag(val); e.target.value = ''; }
+  });
+
+  rebuildPicker(currentVocab);
+});
+
+function toggleCoco(cls) {
+  if (tagSet.has(cls)) tagSet.delete(cls); else tagSet.add(cls);
+  renderTags();
+}
+
+function openEditModal(id) {
+  const s = scenes.find(x => x.id === id);
+  if (!s) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = `Edit — ${s.scene_name}`;
+  document.getElementById('nameFieldWrap').style.display = 'none';
+  populateModelSelect(s.model_file);
+  tagSet = new Set(JSON.parse(s.yolo_classes || '[]'));
+  rebuildPicker(currentVocab);
+  renderTags();
+  document.getElementById('tagInput').value = '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add New Scene';
+  document.getElementById('nameFieldWrap').style.display = '';
+  document.getElementById('modalSceneName').value = '';
+  populateModelSelect('yolov8s-worldv2.pt');
+  tagSet = new Set();
+  rebuildPicker(currentVocab);
+  renderTags();
+  document.getElementById('tagInput').value = '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+// Close modal on overlay click
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ── Save ───────────────────────────────────────────────────────────────────
+async function saveModal() {
+  const model = document.getElementById('modalModel').value;
+  const classes = [...tagSet];
+
+  if (!classes.length) { toast('Add at least one class', 'err'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  let result;
+  if (editingId !== null) {
+    result = await api('PUT', `/api/context/scenes/${editingId}?vocab=${currentVocab}`, { yolo_classes: classes, model_file: model });
+  } else {
+    const name = document.getElementById('modalSceneName').value.trim();
+    if (!name) { toast('Scene name required', 'err'); btn.disabled = false; btn.textContent = 'Save'; return; }
+    result = await api('POST', `/api/context/scenes?vocab=${currentVocab}`, { scene_name: name, yolo_classes: classes, model_file: model });
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save';
+
+  if (result.ok) {
+    toast(editingId !== null ? 'Scene updated ✓' : 'Scene added ✓');
+    closeModal();
+    await loadScenes(document.getElementById('searchInput').value);
+  } else {
+    toast(result.json.error || 'Save failed', 'err');
+  }
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+async function deleteScene(id, name) {
+  if (!confirm(`Delete scene "${name}"? This cannot be undone.`)) return;
+  const { ok, json } = await api('DELETE', `/api/context/scenes/${id}?vocab=${currentVocab}`);
+  if (ok) {
+    toast(`Deleted "${name}"`);
+    await loadScenes(document.getElementById('searchInput').value);
+  } else {
+    toast(json.error || 'Delete failed', 'err');
+  }
+}
+
+// ── Login / Logout ─────────────────────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('loginInput').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  const { ok, json } = await api('POST', '/manage-context/login', { password: pw });
+  if (ok) {
+    document.getElementById('loginOverlay').remove();
+    await loadModels();
+    await loadScenes();
+  } else {
+    errEl.textContent = json.error || 'Incorrect password';
+    document.getElementById('loginInput').value = '';
+    document.getElementById('loginInput').focus();
+  }
+}
+
+async function doLogout() {
+  await api('POST', '/manage-context/logout');
+  location.reload();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+{% if not show_login %}
+(async () => {
+  await loadModels();
+  await loadScenes();
+})();
+{% endif %}
+</script>
+</body>
+</html>

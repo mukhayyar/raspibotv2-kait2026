@@ -1,0 +1,14 @@
+<Writing a paper>
+1. Theoretical desccription - logical theory with mathematical formula
+2. Novelty and contribution - what is new in this paper?
+3. Evaluation method - how to evaluate the proposed method?
+4. Experiments - experimental results
+5. Conclusion - summary of the paper
+
+<Final Presentation>
+1. Impact
+2. contribution
+3. Problem / Research question
+4. Method / Approach
+5. Evaluation / Results
+6. Future work

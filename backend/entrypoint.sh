@@ -12,13 +12,8 @@ if [ -e /dev/video0 ]; then
         || echo "[entrypoint] WARNING: Could not chmod /dev/video0"
 fi
 
-# Start gunicorn
-# Using 'gthread' worker (standard threads) because 'eventlet' conflicts with PyTorch/OpenCV
-exec gunicorn \
-    --worker-class gthread \
-    --workers 1 \
-    --threads 100 \
-    --bind 0.0.0.0:5000 \
-    --timeout 120 \
-    --log-level info \
-    app:app
+# Start the application using the standard Flask-SocketIO server.
+# We avoid Gunicorn here because its thread workers don't support WebSockets,
+# which causes the React/web client to endlessly hang during the upgrade process.
+echo "[entrypoint] Starting Python server on port 5000..."
+exec python app.py

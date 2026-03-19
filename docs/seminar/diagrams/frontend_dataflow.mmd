@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant User
+    participant App as App.jsx<br/>(React)
+    participant Hook as useSocket.js
+    participant IO as Socket.IO<br/>Server
+    participant HW as Hardware<br/>(Raspbot_Lib)
+
+    User->>App: Press WASD key / touch D-pad
+    App->>App: guardedEmit() — check auth
+    App->>Hook: emit('move', {direction})
+    Hook->>IO: WebSocket frame
+    IO->>HW: Car.set_motor() via I2C
+    HW-->>IO: (immediate)
+    IO-->>Hook: broadcast 'status' @ 4 Hz
+    Hook-->>App: setStatus(newState)
+    App-->>User: UI reflects motor state
+
+    User->>App: Enter password
+    App->>Hook: authenticate(password)
+    Hook->>IO: emit('authenticate', {password})
+    IO-->>Hook: emit('auth_result', {success})
+    Hook-->>App: setAuthenticated(true)
+
+    IO-->>Hook: broadcast 'detection_results'
+    Hook-->>App: setDetectionState(results)
+    App-->>User: Detection panel updates
+
+    IO-->>Hook: broadcast 'phase1_result' + 'phase2_timing'
+    Hook-->>App: setPhase1/2Data
+    App-->>User: Research dashboard updates

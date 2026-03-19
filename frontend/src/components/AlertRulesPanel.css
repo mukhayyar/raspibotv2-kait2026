@@ -1,0 +1,268 @@
+/* AlertRulesPanel styles */
+
+.alert-rules-panel {
+  position: relative;
+}
+
+.alert-empty {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 6px 0 10px;
+}
+
+/* ─── Rule list ─── */
+.alert-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.alert-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  transition: all 0.25s;
+}
+.alert-rule-row.fired {
+  background: rgba(231,76,60,0.1);
+  border-color: rgba(231,76,60,0.3);
+  box-shadow: 0 0 12px rgba(231,76,60,0.15);
+}
+.alert-rule-row.disabled {
+  opacity: 0.4;
+}
+
+.alert-rule-indicator {
+  flex-shrink: 0;
+}
+.alert-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: all 0.3s;
+}
+.alert-dot.active {
+  background: #e74c3c;
+  box-shadow: 0 0 10px rgba(231,76,60,0.7);
+  animation: alert-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes alert-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(231,76,60,0.5); }
+  50% { box-shadow: 0 0 16px rgba(231,76,60,0.9); }
+}
+
+.alert-rule-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.alert-rule-class {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.alert-rule-op {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+.alert-rule-arrow {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+.alert-rule-action {
+  color: var(--text);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-rule-controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-sm {
+  transform: scale(0.8);
+  transform-origin: center;
+}
+
+.alert-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.alert-delete-btn:hover {
+  color: var(--danger);
+}
+
+/* ─── Add button ─── */
+.alert-add-btn {
+  width: 100%;
+  padding: 8px;
+  background: rgba(108,92,231,0.1);
+  border: 1px dashed rgba(108,92,231,0.3);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.alert-add-btn:hover {
+  background: rgba(108,92,231,0.18);
+  border-color: rgba(108,92,231,0.5);
+}
+
+/* ─── Form ─── */
+.alert-form {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(108,92,231,0.2);
+  border-radius: 10px;
+  padding: 12px;
+}
+.alert-form-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.alert-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.alert-form-row label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+.alert-form-row select,
+.alert-form-row input[type="text"],
+.alert-form-row input[type="number"] {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.78rem;
+  outline: none;
+  min-width: 0;
+}
+.alert-form-row select:focus,
+.alert-form-row input:focus {
+  border-color: var(--accent);
+}
+.alert-form-row select option {
+  background: #1a1f2e;
+}
+
+.alert-form-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Color picks */
+.alert-color-picks {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.alert-color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.alert-color-dot:hover {
+  transform: scale(1.15);
+}
+.alert-color-dot.selected {
+  border-color: #fff;
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+/* RGB */
+.alert-rgb-val {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.alert-rgb-preview {
+  width: 100%;
+  height: 16px;
+  border-radius: 4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Pattern */
+.alert-form-pattern .alert-form-row input[type="number"] {
+  max-width: 80px;
+}
+
+/* Form buttons */
+.alert-form-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.alert-save-btn {
+  flex: 1;
+  padding: 7px 12px;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.alert-save-btn:hover { filter: brightness(1.15); }
+
+.alert-cancel-btn {
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.alert-cancel-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+}

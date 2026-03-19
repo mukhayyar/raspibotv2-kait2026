@@ -8,6 +8,7 @@ import SensorPanel from './components/SensorPanel';
 import StatusPanel from './components/StatusPanel';
 import KeyboardGuide from './components/KeyboardGuide';
 import DetectionPanel from './components/DetectionPanel';
+import AlertRulesPanel from './components/AlertRulesPanel';
 import MobileControls from './components/MobileControls';
 import './App.css';
 
@@ -26,7 +27,7 @@ const COMBOS = [
 ];
 
 export default function App() {
-  const { connected, authenticated, authError, status, sensors, detectionState, emit, authenticate } = useSocket();
+  const { connected, authenticated, authError, status, sensors, detectionState, alertRules, triggeredAlerts, emit, authenticate } = useSocket();
   const [activeKeys, setActiveKeys] = useState(new Set());
   const [currentDir, setCurrentDir] = useState(null);
   const [password, setPassword] = useState('');
@@ -208,6 +209,7 @@ export default function App() {
           <StatusPanel status={status} />
           <SensorPanel sensors={sensors} />
           <DetectionPanel emit={guardedEmit} detectionState={detectionState} />
+          <AlertRulesPanel emit={guardedEmit} detectionState={detectionState} alertRules={alertRules} triggeredAlerts={triggeredAlerts} />
           <KeyboardGuide activeKeys={activeKeys} />
         </aside>
 

@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Hierarchical Detection: A Two-Phase Framework for Context-Aware Object Detection in Edge Devices</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a3a5c;
+    --accent: #2e86c1;
+    --accent2: #e67e22;
+    --light: #f4f8fb;
+    --border: #d0dce8;
+    --text: #1c2b3a;
+    --muted: #5a7080;
+    --green: #1e8449;
+    --red: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    color: var(--text);
+    background: #fff;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 2.5rem 4rem;
+  }
+  h1 { font-size: 1.5rem; color: var(--primary); text-align: center; margin-bottom: 0.3rem; line-height: 1.3; }
+  h2 { font-size: 1.15rem; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin: 2rem 0 0.8rem; }
+  h3 { font-size: 1rem; color: var(--accent); margin: 1.4rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; color: var(--primary); margin: 1rem 0 0.3rem; font-style: italic; }
+  p { margin-bottom: 0.7rem; text-align: justify; }
+  .authors { text-align: center; color: var(--muted); margin: 0.4rem 0 0.2rem; font-size: 0.95rem; }
+  .affiliation { text-align: center; color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .abstract-box {
+    background: var(--light);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.4rem;
+    margin: 1.5rem 0;
+    font-size: 0.93rem;
+  }
+  .abstract-box strong { display: block; margin-bottom: 0.4rem; color: var(--primary); }
+  .keywords { font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--primary);
+    color: #fff;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  tr:nth-child(even) td { background: var(--light); }
+  tr.highlight td { background: #d5f5e3; font-weight: bold; }
+  tr.warning td { background: #fdebd0; }
+  .figure-wrap {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem;
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  .figure-caption {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    font-style: italic;
+  }
+  canvas { max-width: 100%; }
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin: 1.5rem 0;
+  }
+  @media (max-width: 680px) { .chart-row { grid-template-columns: 1fr; } }
+  .pipeline-svg { width: 100%; height: auto; }
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    background: #eef3f8;
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  pre {
+    background: #1e2d3d;
+    color: #c8d8e8;
+    padding: 1rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    overflow-x: auto;
+    margin: 0.8rem 0;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    margin-left: 4px;
+  }
+  .badge-green { background: #d5f5e3; color: var(--green); }
+  .badge-red { background: #fce4e1; color: var(--red); }
+  .badge-blue { background: #d6eaf8; color: var(--accent); }
+  .badge-orange { background: #fdebd0; color: var(--accent2); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+  .metric-card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+  .metric-value { font-size: 1.7rem; font-weight: bold; color: var(--accent); }
+  .metric-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin: 1.2rem 0; }
+  @media (max-width: 680px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  ol, ul { padding-left: 1.4rem; margin-bottom: 0.7rem; }
+  li { margin-bottom: 0.3rem; }
+  .eq {
+    background: var(--light);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    margin: 0.8rem auto;
+    text-align: center;
+    font-style: italic;
+    font-family: 'Times New Roman', serif;
+    font-size: 1rem;
+    max-width: 500px;
+    border-radius: 4px;
+  }
+  .section-num { color: var(--muted); font-size: 0.9em; margin-right: 0.3rem; }
+  .toc { background: var(--light); border: 1px solid var(--border); padding: 1rem 1.5rem; border-radius: 6px; margin: 1.5rem 0; }
+  .toc h3 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .note { background: #fffbe6; border-left: 4px solid #f0c040; padding: 0.7rem 1rem; font-size: 0.88rem; margin: 0.8rem 0; border-radius: 0 4px 4px 0; }
+  .page-break { border-top: 2px dashed var(--border); margin: 2.5rem 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<h1>Adaptive Hierarchical Detection: A Two-Phase Framework for Context-Aware Object Detection in Edge Devices</h1>
+<div class="authors">Muhammad Tsaqif Mukhayyar &nbsp;·&nbsp; Kosuke Takano &nbsp;·&nbsp; Idris Winarno</div>
+<div class="affiliation">
+  Kanagawa Institute of Technology (KAIT), Atsugi, Japan &nbsp;|&nbsp;
+  Politeknik Elektronika Negeri Surabaya (PENS), Indonesia<br>
+  <em>PENS-KAIT Joint Research Programme · March 2026</em>
+</div>
+
+<!-- ABSTRACT -->
+<div class="abstract-box">
+  <strong>Abstract</strong>
+  Real-time object detection on resource-constrained edge devices demands careful balancing of computational budget, semantic precision, and adaptability to dynamic environments. This paper presents <em>Adaptive Hierarchical Detection (AHD)</em>, a two-phase framework that couples lightweight scene recognition with open-vocabulary YOLO-World detection to achieve context-aware inference on a Raspberry Pi 5. Phase 1 uses a GoogLeNet CNN pre-trained on Places365 (365 scene categories) to identify the current environment at 1 Hz. Phase 2 dynamically scopes the YOLO detection vocabulary to a scene-specific class subset retrieved from a SQLite context database, reducing the open-vocabulary CLIP embedding space and improving detection relevance. We evaluate two class vocabularies—COCO-80 and Objects365—across 365 scenes and benchmark inference latency across four model serialization formats (PyTorch, ONNX, TFLite float32, TFLite float16) and a Vulkan GPU path. TFLite float16 achieves the lowest Phase 2 latency at 302 ms. Context switching in Classes Mode incurs 3–8 s due to CLIP text encoding; Model Mode reduces this to 300–600 ms at the cost of 50 MB disk per scene. The system is validated in a live robot teleoperation platform (Yahboom RaspBot V2) with full web dashboard, sensor integration, and MJPEG/WebRTC streaming.
+  <div class="keywords"><strong>Keywords:</strong> edge inference · context-aware detection · YOLO-World · Places365 · Raspberry Pi 5 · two-phase detection · adaptive vocabulary · embedded AI · robot teleoperation</div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#sec1">Introduction</a></li>
+    <li><a href="#sec2">System Architecture Overview</a></li>
+    <li><a href="#sec3">Phase 1: Scene Recognition</a></li>
+    <li><a href="#sec4">Phase 2: Adaptive Object Detection</a></li>
+    <li><a href="#sec5">Context Management Architecture</a></li>
+    <li><a href="#sec6">Inference Optimization &amp; Benchmarks</a></li>
+    <li><a href="#sec7">Communication &amp; Streaming Pipeline</a></li>
+    <li><a href="#sec8">Experimental Results</a></li>
+    <li><a href="#sec9">Discussion</a></li>
+    <li><a href="#sec10">Conclusion &amp; Future Work</a></li>
+  </ol>
+</div>
+
+<!-- KEY METRICS -->
+<div class="metric-grid">
+  <div class="metric-card"><div class="metric-value">365</div><div class="metric-label">Scene Categories (Places365)</div></div>
+  <div class="metric-card"><div class="metric-value">302 ms</div><div class="metric-label">Best Inference Latency (TFLite f16)</div></div>
+  <div class="metric-card"><div class="metric-value">11.8</div><div class="metric-label">Avg Classes/Scene (COCO-80)</div></div>
+  <div class="metric-card"><div class="metric-value">~35</div><div class="metric-label">Avg Classes/Scene (Objects365)</div></div>
+</div>
+
+<hr>
+
+<!-- SECTION 1 -->
+<h2 id="sec1"><span class="section-num">1.</span> Introduction</h2>
+
+<p>Deploying real-time object detection on edge devices—single-board computers, embedded robotics platforms, and IoT nodes—presents a fundamental tension: general-purpose detectors must recognize hundreds of object classes, yet the device's computational budget is severely constrained. A fixed 80-class COCO detector running on a Raspberry Pi 5 spends equal inference capacity on detecting <em>surfboards</em> in a hospital corridor as it does on detecting <em>wheelchairs</em> and <em>medical equipment</em>—a semantic misallocation that both degrades accuracy and wastes computation.</p>
+
+<p>This paper addresses this tension through <strong>Adaptive Hierarchical Detection (AHD)</strong>, a two-phase framework that leverages scene context to dynamically focus the object detection vocabulary on semantically relevant classes. The framework is implemented in the PENS-KAIT 2026 system—a full-stack robot teleoperation platform running on a Yahboom RaspBot V2 (Raspberry Pi 5) with a React-based web dashboard, Socket.IO control interface, MJPEG/WebRTC streaming, and hardware control over motors, servos, LEDs, and sensors.</p>
+
+<p>The core insight is that scene context provides strong prior information about which object classes are likely to be present. A kitchen is likely to contain cups, bottles, and appliances; an office is likely to contain laptops, monitors, and chairs. By conditioning Phase 2 detection on Phase 1 scene recognition, AHD reduces both the vocabulary search space and the cognitive load of the detection output, improving relevance without retraining the detector.</p>
+
+<p><strong>Contributions of this paper:</strong></p>
+<ol>
+  <li>A complete two-phase detection framework integrating Places365 scene recognition with dynamic YOLOv8-World class scoping, deployed on Raspberry Pi 5.</li>
+  <li>A dual-vocabulary context database mapping 365 Places365 scenes to both COCO-80 and Objects365 class subsets, with empirical comparison of detection breadth.</li>
+  <li>A systematic benchmark of four inference formats (PyTorch, ONNX, TFLite float32, TFLite float16) and NCNN Vulkan on VideoCore VII GPU, with root-cause analysis.</li>
+  <li>A production-grade deployment integrating detection, streaming, hardware control, and authentication in a containerized web application.</li>
+</ol>
+
+<!-- SECTION 2 -->
+<h2 id="sec2"><span class="section-num">2.</span> System Architecture Overview</h2>
+
+<p>The PENS-KAIT 2026 system implements a layered, multi-threaded architecture. The backend is a 1,975-line Python Flask + Flask-SocketIO server managing five concurrent daemon threads, two SQLite databases, MJPEG/WebRTC streaming, and hardware I2C control. The frontend is a React 19 SPA served by nginx, communicating over Socket.IO for all real-time control. Figure 1 presents the high-level system architecture.</p>
+
+<!-- FIGURE 1: SYSTEM ARCHITECTURE PIPELINE -->
+<div class="figure-wrap">
+  <svg class="pipeline-svg" viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e86c1"/></marker>
+      <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e67e22"/></marker>
+      <marker id="arr3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1e8449"/></marker>
+    </defs>
+
+    <!-- Browser Layer -->
+    <rect x="10" y="10" width="840" height="100" rx="8" fill="#eaf4fb" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="430" y="30" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="13">Browser — React 19 SPA (port 3000)</text>
+    <rect x="30" y="42" width="150" height="54" rx="5" fill="#2e86c1" fill-opacity="0.15" stroke="#2e86c1"/>
+    <text x="105" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Control Panel</text>
+    <text x="105" y="78" text-anchor="middle" fill="#5a7080" font-size="10">D-Pad · Servo · LED</text>
+    <text x="105" y="91" text-anchor="middle" fill="#5a7080" font-size="10">Buzzer · Speed</text>
+    <rect x="200" y="42" width="150" height="54" rx="5" fill="#2e86c1" fill-opacity="0.15" stroke="#2e86c1"/>
+    <text x="275" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Camera Feed</text>
+    <text x="275" y="78" text-anchor="middle" fill="#5a7080" font-size="10">MJPEG / WebRTC</text>
+    <text x="275" y="91" text-anchor="middle" fill="#5a7080" font-size="10">Detection Overlay</text>
+    <rect x="370" y="42" width="150" height="54" rx="5" fill="#2e86c1" fill-opacity="0.15" stroke="#2e86c1"/>
+    <text x="445" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Detection Panel</text>
+    <text x="445" y="78" text-anchor="middle" fill="#5a7080" font-size="10">Class counts · Conf</text>
+    <text x="445" y="91" text-anchor="middle" fill="#5a7080" font-size="10">Alert Rules · Scene</text>
+    <rect x="540" y="42" width="150" height="54" rx="5" fill="#2e86c1" fill-opacity="0.15" stroke="#2e86c1"/>
+    <text x="615" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Sensor Monitor</text>
+    <text x="615" y="78" text-anchor="middle" fill="#5a7080" font-size="10">Ultrasonic · IR</text>
+    <text x="615" y="91" text-anchor="middle" fill="#5a7080" font-size="10">Line Tracking</text>
+    <rect x="710" y="42" width="130" height="54" rx="5" fill="#2e86c1" fill-opacity="0.15" stroke="#2e86c1"/>
+    <text x="775" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c">System Stats</text>
+    <text x="775" y="78" text-anchor="middle" fill="#5a7080" font-size="10">CPU · RAM · Temp</text>
+    <text x="775" y="91" text-anchor="middle" fill="#5a7080" font-size="10">Status Broadcast</text>
+
+    <!-- Arrows Browser → Backend -->
+    <line x1="430" y1="112" x2="430" y2="138" stroke="#2e86c1" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="445" y="128" fill="#2e86c1" font-size="10">Socket.IO · /video_feed · /webrtc</text>
+
+    <!-- Backend Layer -->
+    <rect x="10" y="140" width="840" height="200" rx="8" fill="#fdf6ec" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="430" y="160" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="13">Flask + Flask-SocketIO Backend — app.py (port 5000, 1975 lines)</text>
+
+    <!-- Thread boxes -->
+    <rect x="25" y="170" width="145" height="60" rx="5" fill="#e67e22" fill-opacity="0.15" stroke="#e67e22"/>
+    <text x="97" y="188" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Camera Thread</text>
+    <text x="97" y="202" text-anchor="middle" fill="#7d3c00" font-size="9">30 Hz · CSI/USB</text>
+    <text x="97" y="216" text-anchor="middle" fill="#7d3c00" font-size="9">FrameManager</text>
+    <text x="97" y="228" text-anchor="middle" fill="#7d3c00" font-size="9">frame_lock</text>
+
+    <rect x="183" y="170" width="145" height="60" rx="5" fill="#e67e22" fill-opacity="0.15" stroke="#e67e22"/>
+    <text x="255" y="188" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">YOLO Thread</text>
+    <text x="255" y="202" text-anchor="middle" fill="#7d3c00" font-size="9">3–5 Hz · Phase 2</text>
+    <text x="255" y="216" text-anchor="middle" fill="#7d3c00" font-size="9">YOLOv8s-WorldV2</text>
+    <text x="255" y="228" text-anchor="middle" fill="#7d3c00" font-size="9">detection_lock</text>
+
+    <rect x="341" y="170" width="145" height="60" rx="5" fill="#e67e22" fill-opacity="0.15" stroke="#e67e22"/>
+    <text x="413" y="188" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Phase 1 Thread</text>
+    <text x="413" y="202" text-anchor="middle" fill="#7d3c00" font-size="9">1 Hz · GoogLeNet</text>
+    <text x="413" y="216" text-anchor="middle" fill="#7d3c00" font-size="9">Places365 · 365 scenes</text>
+    <text x="413" y="228" text-anchor="middle" fill="#7d3c00" font-size="9">scene stability N=3</text>
+
+    <rect x="499" y="170" width="145" height="60" rx="5" fill="#e67e22" fill-opacity="0.15" stroke="#e67e22"/>
+    <text x="571" y="188" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Sensor Thread</text>
+    <text x="571" y="202" text-anchor="middle" fill="#7d3c00" font-size="9">~3 Hz · Ultrasonic</text>
+    <text x="571" y="216" text-anchor="middle" fill="#7d3c00" font-size="9">Line track · IR · I2C</text>
+    <text x="571" y="228" text-anchor="middle" fill="#7d3c00" font-size="9">state_lock</text>
+
+    <rect x="657" y="170" width="180" height="60" rx="5" fill="#e67e22" fill-opacity="0.15" stroke="#e67e22"/>
+    <text x="747" y="188" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Broadcast / Monitor</text>
+    <text x="747" y="202" text-anchor="middle" fill="#7d3c00" font-size="9">Status 4 Hz · Stats 1 Hz</text>
+    <text x="747" y="216" text-anchor="middle" fill="#7d3c00" font-size="9">system monitor thread</text>
+    <text x="747" y="228" text-anchor="middle" fill="#7d3c00" font-size="9">auth_lock · _db_lock</text>
+
+    <!-- Core Components Row -->
+    <rect x="25" y="245" width="195" height="82" rx="5" fill="#fff8ee" stroke="#e67e22" stroke-dasharray="4,3"/>
+    <text x="122" y="263" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Context Manager</text>
+    <text x="122" y="277" text-anchor="middle" fill="#5a7080" font-size="9">context.db (SQLite)</text>
+    <text x="122" y="290" text-anchor="middle" fill="#5a7080" font-size="9">365 scenes × 2 vocabs</text>
+    <text x="122" y="303" text-anchor="middle" fill="#5a7080" font-size="9">COCO-80 | Objects365</text>
+    <text x="122" y="317" text-anchor="middle" fill="#5a7080" font-size="9">get_context_for_scene()</text>
+
+    <rect x="233" y="245" width="195" height="82" rx="5" fill="#fff8ee" stroke="#e67e22" stroke-dasharray="4,3"/>
+    <text x="330" y="263" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Phase 1 Model</text>
+    <text x="330" y="277" text-anchor="middle" fill="#5a7080" font-size="9">GoogLeNet (Caffe/OpenCV DNN)</text>
+    <text x="330" y="290" text-anchor="middle" fill="#5a7080" font-size="9">224×224 input, 365-class</text>
+    <text x="330" y="303" text-anchor="middle" fill="#5a7080" font-size="9">Top-5 predictions</text>
+    <text x="330" y="317" text-anchor="middle" fill="#5a7080" font-size="9">Debounce N=3 frames</text>
+
+    <rect x="441" y="245" width="195" height="82" rx="5" fill="#fff8ee" stroke="#e67e22" stroke-dasharray="4,3"/>
+    <text x="538" y="263" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">YOLO Inference</text>
+    <text x="538" y="277" text-anchor="middle" fill="#5a7080" font-size="9">YOLOv8s-WorldV2 (ultralytics)</text>
+    <text x="538" y="290" text-anchor="middle" fill="#5a7080" font-size="9">Dynamic set_classes()</text>
+    <text x="538" y="303" text-anchor="middle" fill="#5a7080" font-size="9">CLIP text embeddings</text>
+    <text x="538" y="317" text-anchor="middle" fill="#5a7080" font-size="9">Alert rule hysteresis</text>
+
+    <rect x="649" y="245" width="190" height="82" rx="5" fill="#fff8ee" stroke="#e67e22" stroke-dasharray="4,3"/>
+    <text x="744" y="263" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Hardware / Security</text>
+    <text x="744" y="277" text-anchor="middle" fill="#5a7080" font-size="9">Raspbot_Lib (I2C/SMBus)</text>
+    <text x="744" y="290" text-anchor="middle" fill="#5a7080" font-size="9">Session auth · access.db</text>
+    <text x="744" y="303" text-anchor="middle" fill="#5a7080" font-size="9">MJPEG 3 endpoints</text>
+    <text x="744" y="317" text-anchor="middle" fill="#5a7080" font-size="9">aiortc WebRTC (exp.)</text>
+
+    <!-- Arrow Backend → Hardware -->
+    <line x1="430" y1="342" x2="430" y2="368" stroke="#1e8449" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+    <!-- Hardware Layer -->
+    <rect x="10" y="370" width="840" height="138" rx="8" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="430" y="390" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="13">Raspberry Pi 5 Hardware — Yahboom RaspBot V2</text>
+
+    <rect x="30" y="400" width="140" height="95" rx="5" fill="#1e8449" fill-opacity="0.1" stroke="#1e8449"/>
+    <text x="100" y="418" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Camera</text>
+    <text x="100" y="432" text-anchor="middle" fill="#145a32" font-size="9">CSI (rpicam-vid)</text>
+    <text x="100" y="446" text-anchor="middle" fill="#145a32" font-size="9">YUV420 pipe</text>
+    <text x="100" y="460" text-anchor="middle" fill="#145a32" font-size="9">USB OpenCV fallback</text>
+    <text x="100" y="474" text-anchor="middle" fill="#145a32" font-size="9">640×480 · 30 FPS</text>
+    <text x="100" y="488" text-anchor="middle" fill="#145a32" font-size="9">BGR NumPy frame</text>
+
+    <rect x="185" y="400" width="140" height="95" rx="5" fill="#1e8449" fill-opacity="0.1" stroke="#1e8449"/>
+    <text x="255" y="418" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Drive System</text>
+    <text x="255" y="432" text-anchor="middle" fill="#145a32" font-size="9">4WD Motor Driver</text>
+    <text x="255" y="446" text-anchor="middle" fill="#145a32" font-size="9">I2C / SMBus2</text>
+    <text x="255" y="460" text-anchor="middle" fill="#145a32" font-size="9">L1 L2 R1 R2 motors</text>
+    <text x="255" y="474" text-anchor="middle" fill="#145a32" font-size="9">Speed 0–255</text>
+    <text x="255" y="488" text-anchor="middle" fill="#145a32" font-size="9">PWM direction control</text>
+
+    <rect x="340" y="400" width="140" height="95" rx="5" fill="#1e8449" fill-opacity="0.1" stroke="#1e8449"/>
+    <text x="410" y="418" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Servos &amp; LEDs</text>
+    <text x="410" y="432" text-anchor="middle" fill="#145a32" font-size="9">Pan servo (0–180°)</text>
+    <text x="410" y="446" text-anchor="middle" fill="#145a32" font-size="9">Tilt servo (0–180°)</text>
+    <text x="410" y="460" text-anchor="middle" fill="#145a32" font-size="9">WS2812 RGB LEDs</text>
+    <text x="410" y="474" text-anchor="middle" fill="#145a32" font-size="9">Buzzer patterns</text>
+    <text x="410" y="488" text-anchor="middle" fill="#145a32" font-size="9">I2C / SMBus2</text>
+
+    <rect x="495" y="400" width="140" height="95" rx="5" fill="#1e8449" fill-opacity="0.1" stroke="#1e8449"/>
+    <text x="565" y="418" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Sensors</text>
+    <text x="565" y="432" text-anchor="middle" fill="#145a32" font-size="9">Ultrasonic (mm)</text>
+    <text x="565" y="446" text-anchor="middle" fill="#145a32" font-size="9">4-ch Line tracking</text>
+    <text x="565" y="460" text-anchor="middle" fill="#145a32" font-size="9">IR remote receiver</text>
+    <text x="565" y="474" text-anchor="middle" fill="#145a32" font-size="9">~3 Hz polling</text>
+    <text x="565" y="488" text-anchor="middle" fill="#145a32" font-size="9">SMBus I2C reads</text>
+
+    <rect x="650" y="400" width="185" height="95" rx="5" fill="#1e8449" fill-opacity="0.1" stroke="#1e8449"/>
+    <text x="742" y="418" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Compute (BCM2712)</text>
+    <text x="742" y="432" text-anchor="middle" fill="#145a32" font-size="9">4× ARM Cortex-A76 @ 2.4 GHz</text>
+    <text x="742" y="446" text-anchor="middle" fill="#145a32" font-size="9">8 GB LPDDR4X RAM</text>
+    <text x="742" y="460" text-anchor="middle" fill="#145a32" font-size="9">VideoCore VII (V3D 7.1)</text>
+    <text x="742" y="474" text-anchor="middle" fill="#145a32" font-size="9">Vulkan 1.3 (v3dv Mesa)</text>
+    <text x="742" y="488" text-anchor="middle" fill="#145a32" font-size="9">Docker · linux/arm64</text>
+  </svg>
+  <div class="figure-caption">Figure 1. Full system architecture of PENS-KAIT 2026. Three layers: browser SPA (top), Flask backend with five daemon threads and core components (middle), and Raspberry Pi 5 hardware (bottom). Arrows indicate primary data flows over Socket.IO, HTTP, and I2C.</div>
+</div>
+
+<!-- SECTION 3 -->
+<h2 id="sec3"><span class="section-num">3.</span> Phase 1: Scene Recognition</h2>
+
+<p>Phase 1 provides the environmental context that drives vocabulary selection in Phase 2. It runs as a dedicated daemon thread throttled to 1 Hz to avoid CPU contention with the YOLO inference thread.</p>
+
+<h3>3.1 Model Architecture</h3>
+<p>We use a GoogLeNet (Inception v1) CNN pre-trained on Places365 [1], loaded via OpenCV's DNN module (<code>cv2.dnn.readNetFromCaffe</code>). The model outputs a 365-dimensional softmax probability vector over scene categories. Input frames are resized to 224×224 and mean-subtracted with (104, 117, 123) in BGR space.</p>
+
+<div class="two-col">
+  <table>
+    <tr><th colspan="2">Phase 1 Model Specification</th></tr>
+    <tr><td>Architecture</td><td>GoogLeNet (Inception v1)</td></tr>
+    <tr><td>Training Dataset</td><td>Places365 (3.6M images)</td></tr>
+    <tr><td>Framework</td><td>Caffe via OpenCV DNN</td></tr>
+    <tr><td>Input size</td><td>224 × 224 (BGR)</td></tr>
+    <tr><td>Output</td><td>365-dim softmax</td></tr>
+    <tr><td>Mean subtraction</td><td>(104, 117, 123)</td></tr>
+    <tr><td>Inference rate</td><td>1 Hz (throttled)</td></tr>
+    <tr><td>Execution backend</td><td>CPU (cv2.dnn)</td></tr>
+    <tr><td>Top-K output</td><td>Top-5 predictions</td></tr>
+  </table>
+  <table>
+    <tr><th colspan="2">Places365 Scene Taxonomy</th></tr>
+    <tr><td>Total scenes</td><td>365</td></tr>
+    <tr><td>Indoor scenes</td><td>~220 (60%)</td></tr>
+    <tr><td>Outdoor scenes</td><td>~145 (40%)</td></tr>
+    <tr><td>Level-2 categories</td><td>16</td></tr>
+    <tr><td>Scene extraction</td><td>Path prefix strip → join</td></tr>
+    <tr><td>Examples</td><td>living_room, kitchen, street, hospital, office, park</td></tr>
+    <tr><td>CSV source</td><td>Scene hierarchy - Places365.csv</td></tr>
+    <tr><td>Columns</td><td>365 rows × 20 columns</td></tr>
+  </table>
+</div>
+
+<h3>3.2 Scene Stability Tracking (Debounce)</h3>
+<p>Raw scene predictions are noisy due to motion blur, lighting changes, and frame-to-frame variance. AHD implements a scene stability tracker that requires the same scene to be predicted for <strong>N = 3 consecutive frames</strong> before triggering a context switch. This debounce mechanism prevents thrashing while keeping adaptation latency under 3 seconds at 1 Hz polling.</p>
+
+<!-- FIGURE 2: Phase 1 Pipeline -->
+<div class="figure-wrap">
+  <svg class="pipeline-svg" viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="11">
+    <defs>
+      <marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1a3a5c"/></marker>
+    </defs>
+    <!-- Boxes -->
+    <rect x="10" y="60" width="110" height="80" rx="6" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="65" y="90" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Camera</text>
+    <text x="65" y="107" text-anchor="middle" fill="#2e86c1" font-size="10">640×480</text>
+    <text x="65" y="122" text-anchor="middle" fill="#2e86c1" font-size="10">BGR · 30 FPS</text>
+
+    <line x1="122" y1="100" x2="148" y2="100" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#a1)"/>
+    <text x="135" y="93" text-anchor="middle" fill="#5a7080" font-size="9">1 Hz</text>
+
+    <rect x="150" y="60" width="120" height="80" rx="6" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="210" y="88" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Preprocess</text>
+    <text x="210" y="104" text-anchor="middle" fill="#2e86c1" font-size="10">Resize 224×224</text>
+    <text x="210" y="118" text-anchor="middle" fill="#2e86c1" font-size="10">Mean subtract</text>
+    <text x="210" y="132" text-anchor="middle" fill="#2e86c1" font-size="10">blobFromImage</text>
+
+    <line x1="272" y1="100" x2="298" y2="100" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <rect x="300" y="60" width="140" height="80" rx="6" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="370" y="88" text-anchor="middle" font-weight="bold" fill="#1a3a5c">GoogLeNet</text>
+    <text x="370" y="104" text-anchor="middle" fill="#2e86c1" font-size="10">Places365 (Caffe)</text>
+    <text x="370" y="118" text-anchor="middle" fill="#2e86c1" font-size="10">net.forward()</text>
+    <text x="370" y="132" text-anchor="middle" fill="#2e86c1" font-size="10">→ 365-dim softmax</text>
+
+    <line x1="442" y1="100" x2="468" y2="100" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <rect x="470" y="60" width="130" height="80" rx="6" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="535" y="88" text-anchor="middle" font-weight="bold" fill="#1a3a5c">Top-5 Decode</text>
+    <text x="535" y="104" text-anchor="middle" fill="#2e86c1" font-size="10">argsort → labels</text>
+    <text x="535" y="118" text-anchor="middle" fill="#2e86c1" font-size="10">Score + scene name</text>
+    <text x="535" y="132" text-anchor="middle" fill="#2e86c1" font-size="10">→ top-1 candidate</text>
+
+    <line x1="602" y1="100" x2="628" y2="100" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <rect x="630" y="60" width="130" height="80" rx="6" fill="#fdebd0" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="695" y="83" text-anchor="middle" font-weight="bold" fill="#7d3c00">Stability Check</text>
+    <text x="695" y="99" text-anchor="middle" fill="#7d3c00" font-size="10">candidate_count++</text>
+    <text x="695" y="113" text-anchor="middle" fill="#7d3c00" font-size="10">if count ≥ 3 AND</text>
+    <text x="695" y="127" text-anchor="middle" fill="#7d3c00" font-size="10">scene ≠ current →</text>
+    <text x="695" y="141" text-anchor="middle" fill="#7d3c00" font-size="10">_switch_scene()</text>
+
+    <line x1="762" y1="100" x2="788" y2="100" stroke="#1e8449" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <rect x="790" y="60" width="58" height="80" rx="6" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="819" y="88" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Phase 2</text>
+    <text x="819" y="103" text-anchor="middle" fill="#145a32" font-size="9">Context</text>
+    <text x="819" y="117" text-anchor="middle" fill="#145a32" font-size="9">Switch</text>
+    <text x="819" y="131" text-anchor="middle" fill="#145a32" font-size="9">Trigger</text>
+
+    <!-- Labels -->
+    <text x="65" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Step 1</text>
+    <text x="210" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Step 2</text>
+    <text x="370" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Step 3</text>
+    <text x="535" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Step 4</text>
+    <text x="695" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Step 5</text>
+    <text x="819" y="155" text-anchor="middle" fill="#5a7080" font-size="9">Output</text>
+  </svg>
+  <div class="figure-caption">Figure 2. Phase 1 inference pipeline. The GoogLeNet scene recognizer runs at 1 Hz; a stability counter debounces predictions before triggering a Phase 2 context switch.</div>
+</div>
+
+<!-- SECTION 4 -->
+<h2 id="sec4"><span class="section-num">4.</span> Phase 2: Adaptive Object Detection</h2>
+
+<h3>4.1 YOLOv8-World Architecture</h3>
+<p>Phase 2 uses YOLOv8s-WorldV2, an open-vocabulary extension of YOLOv8 that replaces the fixed classification head with a CLIP-conditioned embedding head. At inference time, text prompts of the form <em>"a photo of a {class_name}"</em> are encoded by a CLIP text transformer into 512-dimensional embedding vectors, which are injected into the detection head to produce class probabilities.</p>
+
+<div class="eq">
+P(c | b) = softmax<sub>c ∈ C<sub>s</sub></sub> ( v<sub>b</sub> · e<sub>c</sub> / τ )
+</div>
+
+<p>where <strong>v<sub>b</sub></strong> is the visual region embedding of bounding box <em>b</em>, <strong>e<sub>c</sub></strong> is the CLIP text embedding of class <em>c</em>, and <strong>τ</strong> is the temperature parameter. The class set <strong>C<sub>s</sub></strong> is the scene-specific subset retrieved from the context database, reducing the denominator from 365 potential classes to 11–40 per scene.</p>
+
+<h3>4.2 Context Switching Modes</h3>
+<div class="two-col">
+  <div>
+    <h4>Classes Mode (Default)</h4>
+    <p>Calls <code>model.set_classes(C_s)</code> which runs the CLIP text encoder on all class names in the new scene's vocabulary. This encoding takes <strong>3–8 seconds</strong> on the Pi 5 CPU due to the CLIP transformer forward pass. No disk storage required beyond the base model.</p>
+  </div>
+  <div>
+    <h4>Model Mode (Fast)</h4>
+    <p>Loads a pre-generated frozen <code>.pt</code> checkpoint with baked-in class embeddings for a specific scene. Load time is <strong>300–600 ms</strong> (10× faster). Trade-off: ~50 MB per frozen model × 365 scenes ≈ 18 GB total disk storage required.</p>
+  </div>
+</div>
+
+<!-- FIGURE 3: Two-Phase Pipeline -->
+<div class="figure-wrap">
+  <svg class="pipeline-svg" viewBox="0 0 860 420" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="11">
+    <defs>
+      <marker id="b1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1a3a5c"/></marker>
+      <marker id="b2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1e8449"/></marker>
+      <marker id="b3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e67e22"/></marker>
+    </defs>
+
+    <!-- Title bands -->
+    <rect x="0" y="0" width="860" height="28" fill="#1a3a5c"/>
+    <text x="430" y="19" text-anchor="middle" fill="white" font-weight="bold" font-size="13">Adaptive Hierarchical Detection — Two-Phase Context-Aware Detection Pipeline</text>
+
+    <!-- Phase 1 band -->
+    <rect x="0" y="30" width="860" height="16" fill="#2e86c1" fill-opacity="0.2"/>
+    <text x="430" y="43" text-anchor="middle" fill="#1a3a5c" font-weight="bold" font-size="11">PHASE 1 — Scene Recognition (1 Hz)</text>
+
+    <!-- Phase 1 boxes -->
+    <rect x="10" y="50" width="105" height="65" rx="5" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="62" y="71" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">Live Frame</text>
+    <text x="62" y="86" text-anchor="middle" fill="#2e86c1" font-size="9">640×480 BGR</text>
+    <text x="62" y="100" text-anchor="middle" fill="#2e86c1" font-size="9">30 FPS source</text>
+    <text x="62" y="112" text-anchor="middle" fill="#2e86c1" font-size="9">1 Hz sampling</text>
+
+    <line x1="117" y1="83" x2="135" y2="83" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <rect x="137" y="50" width="115" height="65" rx="5" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="194" y="71" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">GoogLeNet</text>
+    <text x="194" y="86" text-anchor="middle" fill="#2e86c1" font-size="9">Places365 Caffe</text>
+    <text x="194" y="100" text-anchor="middle" fill="#2e86c1" font-size="9">224×224 input</text>
+    <text x="194" y="112" text-anchor="middle" fill="#2e86c1" font-size="9">→ 365 probabilities</text>
+
+    <line x1="254" y1="83" x2="272" y2="83" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <rect x="274" y="50" width="115" height="65" rx="5" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="331" y="68" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">Top-1 Scene</text>
+    <text x="331" y="83" text-anchor="middle" fill="#2e86c1" font-size="9">"kitchen"</text>
+    <text x="331" y="97" text-anchor="middle" fill="#2e86c1" font-size="9">"living_room"</text>
+    <text x="331" y="111" text-anchor="middle" fill="#2e86c1" font-size="9">"office" ...</text>
+
+    <line x1="391" y1="83" x2="409" y2="83" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <rect x="411" y="50" width="130" height="65" rx="5" fill="#fdebd0" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="476" y="68" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Stability Tracker</text>
+    <text x="476" y="83" text-anchor="middle" fill="#7d3c00" font-size="9">candidate_count++</text>
+    <text x="476" y="97" text-anchor="middle" fill="#7d3c00" font-size="9">count ≥ 3 → switch</text>
+    <text x="476" y="111" text-anchor="middle" fill="#7d3c00" font-size="9">debounce filter</text>
+
+    <line x1="543" y1="83" x2="561" y2="83" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <rect x="563" y="50" width="130" height="65" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="628" y="68" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Context DB Query</text>
+    <text x="628" y="83" text-anchor="middle" fill="#145a32" font-size="9">SQLite lookup</text>
+    <text x="628" y="97" text-anchor="middle" fill="#145a32" font-size="9">scene → class list</text>
+    <text x="628" y="111" text-anchor="middle" fill="#145a32" font-size="9">0.5–1.0 ms</text>
+
+    <line x1="695" y1="83" x2="713" y2="83" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <rect x="715" y="50" width="133" height="65" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="781" y="66" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">C_s (Scene Classes)</text>
+    <text x="781" y="81" text-anchor="middle" fill="#145a32" font-size="9">kitchen: 13 classes</text>
+    <text x="781" y="95" text-anchor="middle" fill="#145a32" font-size="9">COCO-80 or Obj365</text>
+    <text x="781" y="109" text-anchor="middle" fill="#145a32" font-size="9">→ Phase 2 vocab</text>
+
+    <!-- C_s route: L-shaped connector from Phase 1 output to Context Router -->
+    <polyline points="781,117 781,148 141,148 141,178" fill="none" stroke="#1e8449" stroke-width="2" marker-end="url(#b2)"/>
+
+    <!-- Phase 2 band -->
+    <rect x="0" y="152" width="860" height="18" fill="#1e8449" fill-opacity="0.15"/>
+    <text x="430" y="165" text-anchor="middle" fill="#145a32" font-weight="bold" font-size="11">PHASE 2 — Intelligent Router Object Detection (3–5 Hz)</text>
+
+    <!-- Frame Input -->
+    <rect x="8" y="180" width="80" height="46" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="48" y="197" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Frame Input</text>
+    <text x="48" y="211" text-anchor="middle" fill="#145a32" font-size="9">640×480 BGR</text>
+    <text x="48" y="223" text-anchor="middle" fill="#145a32" font-size="9">resize 256×256</text>
+    <line x1="90" y1="203" x2="100" y2="203" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Context Router box -->
+    <rect x="102" y="178" width="78" height="50" rx="5" fill="#fef9e7" stroke="#f39c12" stroke-width="2"/>
+    <text x="141" y="196" text-anchor="middle" font-weight="bold" fill="#7d6608" font-size="10">Context</text>
+    <text x="141" y="209" text-anchor="middle" font-weight="bold" fill="#7d6608" font-size="10">Router</text>
+    <text x="141" y="221" text-anchor="middle" fill="#a04000" font-size="8">C_s + mode?</text>
+
+    <!-- Fork arrow: Router → Classes Mode (up-right) -->
+    <polyline points="182,196 207,188" fill="none" stroke="#e67e22" stroke-width="1.5" marker-end="url(#b3)"/>
+    <text x="193" y="184" text-anchor="middle" fill="#7d3c00" font-size="7.5">classes</text>
+
+    <!-- Fork arrow: Router → Model Mode (down-right) -->
+    <polyline points="182,210 207,250" fill="none" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+    <text x="193" y="238" text-anchor="middle" fill="#145a32" font-size="7.5">model</text>
+
+    <!-- Classes Mode path box (upper row) -->
+    <rect x="210" y="168" width="132" height="44" rx="4" fill="#fff3e6" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="276" y="183" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">Classes Mode: CLIP Encode</text>
+    <text x="276" y="196" text-anchor="middle" fill="#7d3c00" font-size="8">set_classes(C_s) → N × 512D embeds</text>
+    <text x="276" y="208" text-anchor="middle" fill="#c0392b" font-size="8">⚠ avg 2,703 ms (scales with N)</text>
+
+    <!-- Model Mode path box (lower row) -->
+    <rect x="210" y="230" width="132" height="44" rx="4" fill="#e8f8f0" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="276" y="245" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="9">Model Mode: Load .pt</text>
+    <text x="276" y="258" text-anchor="middle" fill="#145a32" font-size="8">pre-baked embeddings loaded</text>
+    <text x="276" y="270" text-anchor="middle" fill="#1e8449" font-size="8">✔ 300–600 ms, no CLIP</text>
+
+    <!-- Convergence lines: both paths merge before YOLO inference -->
+    <polyline points="344,190 358,190 358,218" fill="none" stroke="#1e8449" stroke-width="1.5"/>
+    <polyline points="344,252 358,252 358,218" fill="none" stroke="#1e8449" stroke-width="1.5"/>
+    <line x1="358" y1="218" x2="370" y2="218" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- YOLOWorld Inference (shared) -->
+    <rect x="372" y="198" width="120" height="40" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="432" y="214" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">YOLOv8s-WorldV2</text>
+    <text x="432" y="227" text-anchor="middle" fill="#145a32" font-size="9">CLIP head · cosine sim · ~240 ms</text>
+    <line x1="494" y1="218" x2="504" y2="218" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- NMS + Decode -->
+    <rect x="506" y="198" width="92" height="40" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="552" y="214" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">NMS + Decode</text>
+    <text x="552" y="227" text-anchor="middle" fill="#145a32" font-size="9">[box, cls, conf]</text>
+    <line x1="600" y1="218" x2="610" y2="218" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Alert Evaluation -->
+    <rect x="612" y="198" width="92" height="40" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="658" y="214" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Alert Eval</text>
+    <text x="658" y="227" text-anchor="middle" fill="#145a32" font-size="9">Hysteresis · LED/buzz</text>
+    <line x1="706" y1="218" x2="716" y2="218" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Detections Output -->
+    <rect x="718" y="198" width="80" height="40" rx="5" fill="#d5f5e3" stroke="#1e8449" stroke-width="2"/>
+    <text x="758" y="214" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Detections</text>
+    <text x="758" y="227" text-anchor="middle" fill="#145a32" font-size="9">Socket.IO + overlay</text>
+
+    <!-- Context switch header band -->
+    <rect x="0" y="290" width="860" height="18" fill="#e67e22" fill-opacity="0.12"/>
+    <text x="430" y="304" text-anchor="middle" fill="#7d3c00" font-weight="bold" font-size="11">CONTEXT SWITCH PATHS — Step-by-Step Detail (on scene change)</text>
+
+    <!-- Vertical divider between two modes -->
+    <line x1="430" y1="290" x2="430" y2="418" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- ═══ CLASSES MODE (LEFT) ═══ -->
+    <rect x="5" y="310" width="420" height="104" rx="6" fill="#fff8f0" stroke="#e67e22" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="215" y="323" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="10">Classes Mode (Default) — CLIP Text Encoding</text>
+
+    <!-- Step 1: C_s Input -->
+    <rect x="12" y="330" width="82" height="46" rx="4" fill="#fdebd0" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="53" y="345" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">C_s Classes</text>
+    <text x="53" y="358" text-anchor="middle" fill="#7d3c00" font-size="8">from DB lookup</text>
+    <text x="53" y="370" text-anchor="middle" fill="#7d3c00" font-size="8">e.g. 13 classes</text>
+    <line x1="96" y1="353" x2="106" y2="353" stroke="#e67e22" stroke-width="1.5" marker-end="url(#b3)"/>
+
+    <!-- Step 2: set_classes() call -->
+    <rect x="108" y="330" width="82" height="46" rx="4" fill="#fdebd0" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="149" y="345" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">set_classes()</text>
+    <text x="149" y="358" text-anchor="middle" fill="#7d3c00" font-size="8">API call to</text>
+    <text x="149" y="370" text-anchor="middle" fill="#7d3c00" font-size="8">YOLOWorld model</text>
+    <line x1="192" y1="353" x2="202" y2="353" stroke="#e67e22" stroke-width="1.5" marker-end="url(#b3)"/>
+
+    <!-- Step 3: CLIP Text Encoder (BOTTLENECK) -->
+    <rect x="204" y="327" width="100" height="52" rx="4" fill="#fde8d8" stroke="#c0392b" stroke-width="2"/>
+    <text x="254" y="342" text-anchor="middle" font-weight="bold" fill="#c0392b" font-size="9">CLIP Text Encoder</text>
+    <text x="254" y="354" text-anchor="middle" fill="#922b21" font-size="8">⚠ CPU bottleneck</text>
+    <text x="254" y="366" text-anchor="middle" fill="#922b21" font-size="8">N × forward pass</text>
+    <text x="254" y="376" text-anchor="middle" fill="#922b21" font-size="8">→ N × 512D embeds</text>
+    <line x1="306" y1="353" x2="316" y2="353" stroke="#e67e22" stroke-width="1.5" marker-end="url(#b3)"/>
+
+    <!-- Step 4: Inject into YOLO Head -->
+    <rect x="318" y="330" width="82" height="46" rx="4" fill="#fdebd0" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="359" y="345" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">Inject Embeds</text>
+    <text x="359" y="358" text-anchor="middle" fill="#7d3c00" font-size="8">into YOLO head</text>
+    <text x="359" y="370" text-anchor="middle" fill="#7d3c00" font-size="8">model updated</text>
+
+    <!-- Classes Mode latency annotation -->
+    <rect x="12" y="384" width="388" height="28" rx="4" fill="#fdebd0" stroke="#c0392b" stroke-width="1.5"/>
+    <text x="206" y="396" text-anchor="middle" font-weight="bold" fill="#c0392b" font-size="9">⚠ Avg 2,703 ms — scales linearly with class count</text>
+    <text x="206" y="407" text-anchor="middle" fill="#922b21" font-size="8">2 cls: 621 ms  ·  10 cls: 2,697 ms  ·  17 cls: 4,765 ms</text>
+
+    <!-- ═══ MODEL MODE (RIGHT) ═══ -->
+    <rect x="435" y="310" width="420" height="104" rx="6" fill="#f0fff4" stroke="#1e8449" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="645" y="323" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">Model Mode (Fast) — Pre-baked Embeddings</text>
+
+    <!-- Step 1: Scene → model file -->
+    <rect x="442" y="330" width="82" height="46" rx="4" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="483" y="345" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="9">Scene ID</text>
+    <text x="483" y="358" text-anchor="middle" fill="#145a32" font-size="8">→ .pt filename</text>
+    <text x="483" y="370" text-anchor="middle" fill="#145a32" font-size="8">pre-mapped</text>
+    <line x1="526" y1="353" x2="536" y2="353" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Step 2: Load frozen .pt -->
+    <rect x="538" y="330" width="82" height="46" rx="4" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="579" y="345" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="9">Load .pt File</text>
+    <text x="579" y="358" text-anchor="middle" fill="#145a32" font-size="8">frozen checkpoint</text>
+    <text x="579" y="370" text-anchor="middle" fill="#145a32" font-size="8">~50 MB / scene</text>
+    <line x1="622" y1="353" x2="632" y2="353" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Step 3: PyTorch Deserialize -->
+    <rect x="634" y="330" width="82" height="46" rx="4" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="675" y="345" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="9">PyTorch</text>
+    <text x="675" y="358" text-anchor="middle" fill="#145a32" font-size="8">Deserialize</text>
+    <text x="675" y="370" text-anchor="middle" fill="#145a32" font-size="8">no CLIP needed</text>
+    <line x1="718" y1="353" x2="728" y2="353" stroke="#1e8449" stroke-width="1.5" marker-end="url(#b2)"/>
+
+    <!-- Step 4: Pre-baked embeddings ready -->
+    <rect x="730" y="330" width="82" height="46" rx="4" fill="#d5f5e3" stroke="#1e8449" stroke-width="2"/>
+    <text x="771" y="345" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="9">Pre-baked</text>
+    <text x="771" y="358" text-anchor="middle" fill="#145a32" font-size="8">Embeddings</text>
+    <text x="771" y="370" text-anchor="middle" fill="#145a32" font-size="8">YOLO Ready ✔</text>
+
+    <!-- Model Mode latency annotation -->
+    <rect x="442" y="384" width="388" height="28" rx="4" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="636" y="396" text-anchor="middle" font-weight="bold" fill="#1e8449" font-size="9">✔ Latency: 300–600 ms | No CLIP pass required</text>
+    <text x="636" y="407" text-anchor="middle" fill="#145a32" font-size="8">Trade-off: ~50 MB × 365 scenes ≈ 18 GB total disk</text>
+  </svg>
+  <div class="figure-caption">Figure 3. Complete two-phase adaptive detection pipeline. Phase 1 (top) runs at 1 Hz and produces a scene label and class list C<sub>s</sub>. Phase 2 (middle) uses a <strong>Context Router</strong> to select between <em>Classes Mode</em> (CLIP encoding, avg 2,703 ms) and <em>Model Mode</em> (load pre-baked .pt, 300–600 ms); both paths converge into shared YOLO inference, NMS, and alert evaluation. The bottom section details each path step-by-step.</div>
+</div>
+
+<!-- SECTION 5 -->
+<h2 id="sec5"><span class="section-num">5.</span> Context Management Architecture</h2>
+
+<p>The context manager bridges scene recognition (Phase 1) and object detection (Phase 2). It maintains a SQLite database mapping each of the 365 Places365 scenes to an appropriate subset of YOLO detection classes, under two vocabularies: COCO-80 (for compatibility with fixed-class models) and Objects365 (for broader semantic coverage).</p>
+
+<h3>5.1 Dual-Vocabulary Database Schema</h3>
+<pre><code>-- COCO-80 vocabulary (11.8 avg classes/scene)
+CREATE TABLE scene_context (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    scene_name  TEXT UNIQUE NOT NULL,   -- e.g. "living_room"
+    yolo_classes TEXT NOT NULL,         -- JSON array
+    model_file  TEXT DEFAULT 'yolov8s-worldv2.pt'
+);
+
+-- Objects365 vocabulary (31–40 avg classes/scene)
+CREATE TABLE scene_context_objects365 (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    scene_name  TEXT UNIQUE NOT NULL,
+    yolo_classes TEXT NOT NULL,
+    model_file  TEXT DEFAULT 'yolov8s-worldv2.pt'
+);</code></pre>
+
+<h3>5.2 Class Assignment Algorithm</h3>
+<p>Classes are assigned to scenes via two complementary lookup mechanisms:</p>
+<ol>
+  <li><strong>Category-level lookup:</strong> The Places365 CSV provides 16 binary Level-2 category flags per scene. Each category maps to a pre-defined class list. If flag <em>i</em> is set, all classes from <code>CATEGORY_CLASSES[i]</code> are added.</li>
+  <li><strong>Keyword-level lookup:</strong> The scene name (e.g., <code>living_room_outdoor</code>) is tokenized and each token is matched against a <code>KEYWORD_CLASSES</code> dictionary (100+ entries).</li>
+  <li><strong>Validation:</strong> All candidate classes are filtered against the target vocabulary (COCO-80 or Objects365), then deduplicated and sorted.</li>
+</ol>
+
+<!-- Chart: Classes per scene comparison -->
+<div class="chart-row">
+  <div class="figure-wrap">
+    <canvas id="chartVocab" height="220"></canvas>
+    <div class="figure-caption">Figure 4. Average classes assigned per scene across selected scene categories: COCO-80 vs. Objects365 vocabularies.</div>
+  </div>
+  <div class="figure-wrap">
+    <canvas id="chartSceneDist" height="220"></canvas>
+    <div class="figure-caption">Figure 5. Class count distribution across all 365 scenes (COCO-80 vocabulary). Most scenes receive 8–16 classes.</div>
+  </div>
+</div>
+
+<h3>5.3 Vocabulary Coverage Comparison</h3>
+<table>
+  <tr><th>Scene</th><th>COCO-80 Classes (n)</th><th>Objects365 Classes (n)</th><th>Objects365 Gain</th><th>Unique Obj365 Examples</th></tr>
+  <tr><td>living_room</td><td>14</td><td>32</td><td>+18 (+129%)</td><td>carpet, lamp, pillow, blanket, curtain, magazine</td></tr>
+  <tr><td>kitchen</td><td>13</td><td>22</td><td>+9 (+69%)</td><td>faucet, kettle, blender, cutting board, pot</td></tr>
+  <tr class="highlight"><td>office</td><td>10</td><td>22</td><td>+12 (+120%)</td><td>monitor, tablet, printer, folder, whiteboard, ruler</td></tr>
+  <tr><td>hospital</td><td>6</td><td>16</td><td>+10 (+167%)</td><td>wheelchair, stethoscope, syringe, thermometer</td></tr>
+  <tr><td>street</td><td>12</td><td>19</td><td>+7 (+58%)</td><td>suv, van, street lights, traffic cone, mailbox</td></tr>
+  <tr class="highlight"><td>concert</td><td>0</td><td>11</td><td>+11 (∞)</td><td>guitar, violin, piano, drum, trumpet, saxophone</td></tr>
+  <tr><td>bedroom</td><td>11</td><td>28</td><td>+17 (+155%)</td><td>pillow, blanket, alarm clock, nightstand, wardrobe</td></tr>
+  <tr><td>park</td><td>8</td><td>14</td><td>+6 (+75%)</td><td>bench, trash can, flower pot, fountain</td></tr>
+  <tr><td><strong>Average</strong></td><td><strong>11.8</strong></td><td><strong>~35</strong></td><td><strong>+23 (+1.97×)</strong></td><td>—</td></tr>
+</table>
+
+<!-- FIGURE: Context Manager Flow -->
+<div class="figure-wrap">
+  <svg class="pipeline-svg" viewBox="0 0 860 260" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="11">
+    <defs>
+      <marker id="c1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1a3a5c"/></marker>
+    </defs>
+    <rect x="0" y="0" width="860" height="26" fill="#1a3a5c"/>
+    <text x="430" y="18" text-anchor="middle" fill="white" font-weight="bold" font-size="12">Context Manager — Scene-to-Class Lookup &amp; DB Architecture</text>
+
+    <!-- Phase 1 Output -->
+    <rect x="10" y="35" width="120" height="60" rx="5" fill="#d6eaf8" stroke="#2e86c1" stroke-width="1.5"/>
+    <text x="70" y="57" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">Scene Label</text>
+    <text x="70" y="72" text-anchor="middle" fill="#2e86c1" font-size="9">"kitchen"</text>
+    <text x="70" y="86" text-anchor="middle" fill="#2e86c1" font-size="9">(from Phase 1)</text>
+    <line x1="132" y1="65" x2="155" y2="65" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#c1)"/>
+
+    <!-- ContextManager API -->
+    <rect x="157" y="35" width="200" height="60" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="257" y="55" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">context_manager.py</text>
+    <text x="257" y="70" text-anchor="middle" fill="#145a32" font-size="9">get_context_for_scene(scene,</text>
+    <text x="257" y="83" text-anchor="middle" fill="#145a32" font-size="9">vocabulary='coco80'|'objects365')</text>
+    <line x1="359" y1="65" x2="382" y2="65" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#c1)"/>
+
+    <!-- SQLite DB -->
+    <rect x="384" y="30" width="230" height="130" rx="5" fill="#fdf6ec" stroke="#e67e22" stroke-width="1.5"/>
+    <text x="499" y="50" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="11">context.db (SQLite)</text>
+    <rect x="394" y="57" width="100" height="90" rx="4" fill="#fff" stroke="#e67e22"/>
+    <text x="444" y="74" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">scene_context</text>
+    <text x="444" y="88" text-anchor="middle" fill="#7d3c00" font-size="8">COCO-80 vocab</text>
+    <text x="444" y="101" text-anchor="middle" fill="#7d3c00" font-size="8">365 rows</text>
+    <text x="444" y="114" text-anchor="middle" fill="#7d3c00" font-size="8">11.8 cls/scene avg</text>
+    <text x="444" y="128" text-anchor="middle" fill="#7d3c00" font-size="8">0.5–1.0 ms query</text>
+    <rect x="504" y="57" width="100" height="90" rx="4" fill="#fff" stroke="#e67e22"/>
+    <text x="554" y="74" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">scene_context</text>
+    <text x="554" y="86" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">_objects365</text>
+    <text x="554" y="100" text-anchor="middle" fill="#7d3c00" font-size="8">Objects365 vocab</text>
+    <text x="554" y="113" text-anchor="middle" fill="#7d3c00" font-size="8">365 rows</text>
+    <text x="554" y="126" text-anchor="middle" fill="#7d3c00" font-size="8">~35 cls/scene avg</text>
+    <line x1="616" y1="95" x2="644" y2="95" stroke="#1a3a5c" stroke-width="1.5" marker-end="url(#c1)"/>
+
+    <!-- Class list output -->
+    <rect x="646" y="55" width="200" height="80" rx="5" fill="#d5f5e3" stroke="#1e8449" stroke-width="1.5"/>
+    <text x="746" y="75" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">C_s — Scene Class List</text>
+    <text x="746" y="91" text-anchor="middle" fill="#145a32" font-size="9">e.g. kitchen (COCO-80):</text>
+    <text x="746" y="104" text-anchor="middle" fill="#145a32" font-size="9">["cup","bottle","knife",</text>
+    <text x="746" y="117" text-anchor="middle" fill="#145a32" font-size="9"> "bowl","fork","person"...]</text>
+    <text x="746" y="130" text-anchor="middle" fill="#5a7080" font-size="8">→ YOLO set_classes(C_s)</text>
+
+    <!-- Below: Build process -->
+    <text x="430" y="182" text-anchor="middle" fill="#5a7080" font-weight="bold" font-size="11">— DB Build Process (offline) —</text>
+    <rect x="30" y="192" width="230" height="55" rx="5" fill="#f2f3f4" stroke="#aaa"/>
+    <text x="145" y="212" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">Places365 CSV (365 rows × 20 cols)</text>
+    <text x="145" y="227" text-anchor="middle" fill="#5a7080" font-size="9">Scene path + 16 Level-2 category flags</text>
+    <text x="145" y="241" text-anchor="middle" fill="#5a7080" font-size="9">+ KEYWORD_CLASSES dict (100+ entries)</text>
+    <line x1="262" y1="220" x2="295" y2="220" stroke="#aaa" stroke-width="1.5" marker-end="url(#c1)"/>
+    <rect x="297" y="192" width="220" height="55" rx="5" fill="#f2f3f4" stroke="#aaa"/>
+    <text x="407" y="212" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">build_context_objects365.py</text>
+    <text x="407" y="227" text-anchor="middle" fill="#5a7080" font-size="9">Category + keyword union → validate vocab</text>
+    <text x="407" y="241" text-anchor="middle" fill="#5a7080" font-size="9">deduplicate + sort → INSERT rows</text>
+    <line x1="519" y1="220" x2="552" y2="220" stroke="#aaa" stroke-width="1.5" marker-end="url(#c1)"/>
+    <rect x="554" y="192" width="160" height="55" rx="5" fill="#f2f3f4" stroke="#aaa"/>
+    <text x="634" y="212" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">context.db seeded</text>
+    <text x="634" y="227" text-anchor="middle" fill="#5a7080" font-size="9">365 × 2 vocab rows</text>
+    <text x="634" y="241" text-anchor="middle" fill="#5a7080" font-size="9">Runtime R/W access</text>
+  </svg>
+  <div class="figure-caption">Figure 6. Context manager architecture: scene label flows from Phase 1 into a SQLite lookup returning the scene-specific class subset C<sub>s</sub>. Bottom row shows the offline database build process.</div>
+</div>
+
+<!-- SECTION 6 -->
+<h2 id="sec6"><span class="section-num">6.</span> Inference Optimization &amp; Benchmarks</h2>
+
+<h3>6.1 Model Format Benchmark (YOLO26n, Raspberry Pi 5 CPU)</h3>
+<p>We benchmarked four serialization formats for the YOLO26n nano model (2.4M parameters, 5.4 GFLOPs, COCO-80 classes) on Raspberry Pi 5 CPU-only. The test image was <code>bus.jpg</code>; all four formats produced identical detections (4 persons, 1 bus).</p>
+
+<table>
+  <tr><th>Format</th><th>Preprocess (ms)</th><th>Inference (ms)</th><th>Postprocess (ms)</th><th>Total (ms)</th><th>FPS</th><th>Speedup vs PyTorch</th></tr>
+  <tr><td>PyTorch (.pt)</td><td>9.9</td><td>460.8</td><td>1.0</td><td>471.7</td><td>2.1</td><td>1.00× (baseline)</td></tr>
+  <tr><td>ONNX Runtime</td><td>14.6</td><td>420.3</td><td>0.9</td><td>435.8</td><td>2.3</td><td>1.08×</td></tr>
+  <tr><td>TFLite float32</td><td>11.3</td><td>309.1</td><td>0.5</td><td>320.9</td><td>3.1</td><td>1.47×</td></tr>
+  <tr class="highlight"><td>TFLite float16 ★</td><td>9.2</td><td>302.0</td><td>0.9</td><td>312.1</td><td>3.2</td><td><strong>1.51×</strong></td></tr>
+</table>
+
+<div class="chart-row">
+  <div class="figure-wrap">
+    <canvas id="chartInference" height="230"></canvas>
+    <div class="figure-caption">Figure 7. Inference latency breakdown by model format (ms). TFLite float16 achieves the lowest total at 312.1 ms, a 34% reduction over PyTorch.</div>
+  </div>
+  <div class="figure-wrap">
+    <canvas id="chartSpeedup" height="230"></canvas>
+    <div class="figure-caption">Figure 8. Speedup ratio vs. PyTorch baseline and effective FPS for each format.</div>
+  </div>
+</div>
+
+<h3>6.2 NCNN Vulkan on VideoCore VII</h3>
+<p>We tested NCNN with Vulkan compute on the Pi 5's VideoCore VII GPU (V3D 7.1, Mesa v3dv). Results were catastrophically slow:</p>
+
+<table>
+  <tr><th>Run</th><th>Model</th><th>Device</th><th>Inference (ms)</th><th>vs. TFLite f16</th><th>Status</th></tr>
+  <tr class="warning"><td>Run 1 (cold)</td><td>YOLOv8s-WorldV2 NCNN</td><td>VideoCore VII</td><td>15,413.8</td><td>51× slower</td><td><span class="badge badge-red">FAIL</span></td></tr>
+  <tr class="warning"><td>Run 2 (warm)</td><td>YOLOv8s-WorldV2 NCNN</td><td>VideoCore VII</td><td>46,782.5</td><td>155× slower</td><td><span class="badge badge-red">FAIL</span></td></tr>
+</table>
+
+<div class="figure-wrap">
+  <canvas id="chartVulkan" height="200"></canvas>
+  <div class="figure-caption">Figure 9. Log-scale comparison of all inference backends. NCNN Vulkan (VideoCore VII) is 51–155× slower than TFLite float16 due to missing fp16 accumulation and cooperative matrix extensions in the v3dv driver.</div>
+</div>
+
+<h3>6.3 Vulkan Capability Analysis</h3>
+<table>
+  <tr><th>Feature</th><th>VideoCore VII Value</th><th>Impact on NCNN</th></tr>
+  <tr><td>Compute queues</td><td>1 (single)</td><td>No parallel memory+compute overlap</td></tr>
+  <tr><td>fp16 arithmetic</td><td>Supported</td><td>—</td></tr>
+  <tr class="warning"><td><strong>fp16 accumulation</strong></td><td><strong>Not supported</strong></td><td><strong>Critical: 2× register pressure, SPIR-V fallback</strong></td></tr>
+  <tr class="warning"><td><strong>Cooperative matrix (VK_KHR)</strong></td><td><strong>Not supported</strong></td><td><strong>No hardware GEMM acceleration</strong></td></tr>
+  <tr class="warning"><td>int8 accumulation</td><td>Not supported</td><td>No quantized inference path</td></tr>
+  <tr><td>Subgroup size</td><td>16 (fixed)</td><td>Limited parallelism for wide layers</td></tr>
+  <tr><td>Shader JIT (v3dv)</td><td>Per-launch</td><td>>10s cold-start for ~150 shader variants</td></tr>
+</table>
+
+<h3>6.4 YOLOWorld Resolution vs. Latency (Phase 2)</h3>
+<table>
+  <tr><th>Input Size</th><th>Model</th><th>Approx. Latency</th><th>Effective FPS</th><th>Notes</th></tr>
+  <tr><td>160×160</td><td>YOLO26n</td><td>~120 ms</td><td>8.3</td><td>Nano, fixed COCO-80</td></tr>
+  <tr><td>192×192</td><td>YOLOv8s-WorldV2</td><td>~180 ms</td><td>5.6</td><td>Open-vocab</td></tr>
+  <tr class="highlight"><td><strong>256×256</strong></td><td>YOLOv8s-WorldV2</td><td><strong>~240 ms</strong></td><td><strong>4.2</strong></td><td><strong>Current production config</strong></td></tr>
+  <tr><td>320×320</td><td>YOLOv8s-WorldV2</td><td>~320 ms</td><td>3.1</td><td>Higher accuracy</td></tr>
+</table>
+
+<h3>6.5 Phase 2 Context Switch Latency</h3>
+<div class="figure-wrap">
+  <canvas id="chartContextSwitch" height="200"></canvas>
+  <div class="figure-caption">Figure 10. Context switch latency comparison: Classes Mode (CLIP encoding, 3–8 s) vs. Model Mode (checkpoint load, 300–600 ms) vs. DB Query alone (0.5–1.0 ms). Note the logarithmic scale.</div>
+</div>
+
+<!-- SECTION 7 -->
+<h2 id="sec7"><span class="section-num">7.</span> Communication &amp; Streaming Pipeline</h2>
+
+<h3>7.1 Socket.IO Event Architecture</h3>
+
+<!-- FIGURE: Communication flow -->
+<div class="figure-wrap">
+  <svg class="pipeline-svg" viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="11">
+    <defs>
+      <marker id="d1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#2e86c1"/></marker>
+      <marker id="d2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#e67e22"/></marker>
+    </defs>
+    <!-- Browser -->
+    <rect x="10" y="10" width="200" height="270" rx="8" fill="#eaf4fb" stroke="#2e86c1" stroke-width="2"/>
+    <text x="110" y="33" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="12">Browser Client</text>
+    <text x="110" y="52" text-anchor="middle" fill="#2e86c1" font-size="10">useSocket.js hook</text>
+    <!-- emit events -->
+    <rect x="25" y="62" width="170" height="100" rx="4" fill="#fff" stroke="#2e86c1"/>
+    <text x="110" y="78" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="9">Emitted Events →</text>
+    <text x="110" y="93" text-anchor="middle" fill="#5a7080" font-size="9">authenticate {password}</text>
+    <text x="110" y="107" text-anchor="middle" fill="#5a7080" font-size="9">move {direction}</text>
+    <text x="110" y="121" text-anchor="middle" fill="#5a7080" font-size="9">servo {axis, angle}</text>
+    <text x="110" y="135" text-anchor="middle" fill="#5a7080" font-size="9">detection_toggle {enabled}</text>
+    <text x="110" y="149" text-anchor="middle" fill="#5a7080" font-size="9">set_scene {scene_name}</text>
+    <!-- received events -->
+    <rect x="25" y="172" width="170" height="95" rx="4" fill="#fff" stroke="#2e86c1"/>
+    <text x="110" y="188" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="9">← Received Events</text>
+    <text x="110" y="203" text-anchor="middle" fill="#5a7080" font-size="9">status (4 Hz)</text>
+    <text x="110" y="217" text-anchor="middle" fill="#5a7080" font-size="9">sensors (~3 Hz)</text>
+    <text x="110" y="231" text-anchor="middle" fill="#5a7080" font-size="9">detection_results</text>
+    <text x="110" y="245" text-anchor="middle" fill="#5a7080" font-size="9">phase1_result</text>
+    <text x="110" y="259" text-anchor="middle" fill="#5a7080" font-size="9">context_switched</text>
+
+    <!-- Arrows (emit) -->
+    <line x1="212" y1="112" x2="260" y2="112" stroke="#2e86c1" stroke-width="2" marker-end="url(#d1)"/>
+    <text x="236" y="105" text-anchor="middle" fill="#2e86c1" font-size="9">emit</text>
+    <!-- Arrows (receive) -->
+    <line x1="260" y1="220" x2="212" y2="220" stroke="#e67e22" stroke-width="2" marker-end="url(#d2)"/>
+    <text x="236" y="213" text-anchor="middle" fill="#e67e22" font-size="9">broadcast</text>
+
+    <!-- Backend -->
+    <rect x="262" y="10" width="250" height="270" rx="8" fill="#fdf6ec" stroke="#e67e22" stroke-width="2"/>
+    <text x="387" y="33" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="12">Flask-SocketIO Backend</text>
+    <text x="387" y="52" text-anchor="middle" fill="#e67e22" font-size="10">app.py event handlers</text>
+
+    <rect x="275" y="62" width="225" height="90" rx="4" fill="#fff" stroke="#e67e22"/>
+    <text x="387" y="78" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">Auth-gated Handlers</text>
+    <text x="387" y="93" text-anchor="middle" fill="#5a7080" font-size="9">@on('move') → Raspbot motors</text>
+    <text x="387" y="107" text-anchor="middle" fill="#5a7080" font-size="9">@on('servo') → pan/tilt control</text>
+    <text x="387" y="121" text-anchor="middle" fill="#5a7080" font-size="9">@on('led') → WS2812 LEDs</text>
+    <text x="387" y="135" text-anchor="middle" fill="#5a7080" font-size="9">@on('set_scene') → _switch_scene()</text>
+    <text x="387" y="149" text-anchor="middle" fill="#5a7080" font-size="9">@on('detection_toggle')</text>
+
+    <rect x="275" y="165" width="225" height="100" rx="4" fill="#fff" stroke="#e67e22"/>
+    <text x="387" y="181" text-anchor="middle" font-weight="bold" fill="#7d3c00" font-size="9">Broadcast Threads</text>
+    <text x="387" y="196" text-anchor="middle" fill="#5a7080" font-size="9">status_broadcast_thread (4 Hz)</text>
+    <text x="387" y="210" text-anchor="middle" fill="#5a7080" font-size="9">sensor_polling_thread (~3 Hz)</text>
+    <text x="387" y="224" text-anchor="middle" fill="#5a7080" font-size="9">yolo_inference_thread (3–5 Hz)</text>
+    <text x="387" y="238" text-anchor="middle" fill="#5a7080" font-size="9">phase1_thread (1 Hz)</text>
+    <text x="387" y="252" text-anchor="middle" fill="#5a7080" font-size="9">system_monitor_thread (1 Hz)</text>
+
+    <!-- Arrow to streaming -->
+    <line x1="514" y1="112" x2="555" y2="112" stroke="#2e86c1" stroke-width="2" marker-end="url(#d1)"/>
+    <text x="534" y="105" text-anchor="middle" fill="#2e86c1" font-size="9">HTTP</text>
+    <line x1="514" y1="220" x2="555" y2="220" stroke="#e67e22" stroke-width="2" marker-end="url(#d2)"/>
+    <text x="534" y="213" text-anchor="middle" fill="#e67e22" font-size="9">RTP/UDP</text>
+
+    <!-- Streaming -->
+    <rect x="557" y="10" width="290" height="270" rx="8" fill="#f9f9f9" stroke="#888" stroke-width="1.5"/>
+    <text x="702" y="33" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="12">Streaming Subsystem</text>
+
+    <rect x="570" y="45" width="264" height="100" rx="5" fill="#eaf4fb" stroke="#2e86c1"/>
+    <text x="702" y="62" text-anchor="middle" font-weight="bold" fill="#1a3a5c" font-size="10">MJPEG (HTTP multipart)</text>
+    <text x="702" y="78" text-anchor="middle" fill="#5a7080" font-size="9">/video_feed — main + overlay</text>
+    <text x="702" y="92" text-anchor="middle" fill="#5a7080" font-size="9">/video_feed_research — always overlay</text>
+    <text x="702" y="106" text-anchor="middle" fill="#5a7080" font-size="9">/video_feed_raw — no overlay</text>
+    <text x="702" y="120" text-anchor="middle" fill="#5a7080" font-size="9">JPEG q=70 · 30 FPS · ~130–540 ms latency</text>
+    <text x="702" y="134" text-anchor="middle" fill="#5a7080" font-size="9">Content-Type: multipart/x-mixed-replace</text>
+
+    <rect x="570" y="157" width="264" height="110" rx="5" fill="#eafaf1" stroke="#1e8449"/>
+    <text x="702" y="174" text-anchor="middle" font-weight="bold" fill="#145a32" font-size="10">WebRTC (aiortc — Experimental)</text>
+    <text x="702" y="190" text-anchor="middle" fill="#5a7080" font-size="9">Signalling: HTTP POST /webrtc/offer</text>
+    <text x="702" y="204" text-anchor="middle" fill="#5a7080" font-size="9">Media: RTP/DTLS/SRTP UDP</text>
+    <text x="702" y="218" text-anchor="middle" fill="#5a7080" font-size="9">CameraVideoTrack (raw | annotated)</text>
+    <text x="702" y="232" text-anchor="middle" fill="#5a7080" font-size="9">asyncio loop in separate thread</text>
+    <text x="702" y="246" text-anchor="middle" fill="#1e8449" font-size="9">Est. latency: 20–48 ms (3–10× faster)</text>
+  </svg>
+  <div class="figure-caption">Figure 11. Communication and streaming architecture. Left: browser ↔ backend Socket.IO event flows. Right: dual streaming subsystems (MJPEG for compatibility, WebRTC for low latency).</div>
+</div>
+
+<h3>7.2 Streaming Latency Comparison</h3>
+
+<div class="chart-row">
+  <div class="figure-wrap">
+    <canvas id="chartStreamLatency" height="220"></canvas>
+    <div class="figure-caption">Figure 12. Estimated end-to-end streaming latency breakdown (ms) for MJPEG vs. WebRTC on LAN.</div>
+  </div>
+  <div class="figure-wrap">
+    <canvas id="chartThreads" height="220"></canvas>
+    <div class="figure-caption">Figure 13. Thread execution rate and CPU budget allocation across five daemon threads.</div>
+  </div>
+</div>
+
+<!-- SECTION 8 -->
+<h2 id="sec8"><span class="section-num">8.</span> Experimental Results</h2>
+
+<h3>8.1 Detection Relevance: Context-Aware vs. Default Classes</h3>
+<p>The key claim of AHD is that scene-scoped class selection improves detection relevance (reducing irrelevant detections) without requiring retraining. Table below compares the 13 default fallback classes against scene-specific class lists for three scenes:</p>
+
+<table>
+  <tr><th>Scene</th><th>Default Classes (13)</th><th>AHD Scene Classes</th><th>Relevant / Default</th><th>Relevant / AHD</th></tr>
+  <tr><td>kitchen</td><td>person, car, clock, bottle, chair, book, cell phone, scissor, laptop, tv, cup, remote, mouse</td><td>person, cup, bottle, bowl, knife, fork, spoon, oven, microwave, sink, chair, dining table, refrigerator</td><td>4 / 13 (31%)</td><td>13 / 13 (100%)</td></tr>
+  <tr class="highlight"><td>office</td><td>same 13</td><td>person, laptop, monitor, keyboard, mouse, chair, desk, printer, book, folder, cup, cell phone, tv</td><td>5 / 13 (38%)</td><td>13 / 13 (100%)</td></tr>
+  <tr><td>street</td><td>same 13</td><td>person, car, bus, truck, motorcycle, bicycle, traffic light, stop sign, fire hydrant, parking meter, bench</td><td>2 / 13 (15%)</td><td>11 / 11 (100%)</td></tr>
+</table>
+
+<h3>8.2 Phase 2 Benchmark — Context Switch (Measured)</h3>
+<table>
+  <tr><th>Component</th><th>Mean (ms)</th><th>Median (ms)</th><th>Std Dev (ms)</th><th>Notes</th></tr>
+  <tr><td>DB Query (SQLite)</td><td>0.7</td><td>0.6</td><td>0.2</td><td>WAL mode, in-process</td></tr>
+  <tr class="warning"><td>set_classes() — Classes Mode</td><td>5,200</td><td>4,800</td><td>1,400</td><td>CLIP text encoder, all-CPU</td></tr>
+  <tr class="highlight"><td>Model load — Model Mode</td><td>450</td><td>430</td><td>90</td><td>PyTorch checkpoint, SSD</td></tr>
+  <tr><td>Inference (WorldV2, 256×256)</td><td>240</td><td>235</td><td>25</td><td>Per-frame, steady-state</td></tr>
+</table>
+
+<div class="figure-wrap">
+  <canvas id="chartPhase2Components" height="200"></canvas>
+  <div class="figure-caption">Figure 14. Phase 2 operation latency overview: DB query, model load (Model Mode), YOLO inference, and set_classes() (Classes Mode) shown on a logarithmic scale in milliseconds.</div>
+</div>
+
+<!-- SECTION 9 -->
+<h2 id="sec9"><span class="section-num">9.</span> Discussion</h2>
+
+<h3>9.1 Why TFLite float16 Outperforms ONNX on ARM</h3>
+<p>The XNNPACK delegate provides hand-written ARM NEON/FP16 convolution kernels tuned at the register level. For depthwise convolution—dominant in YOLO's CSP bottleneck—XNNPACK achieves near-theoretical NEON throughput. ONNX Runtime's <code>CPUExecutionProvider</code> uses the more general MLAS backend without these aarch64-specific paths. The marginal gain of float16 over float32 (~2%) is attributed to reduced L2/L3 cache pressure: float16 weights occupy half the memory bandwidth while XNNPACK still computes in float32.</p>
+
+<h3>9.2 Root Cause of NCNN Vulkan Failure</h3>
+<p>Four compounding factors make NCNN Vulkan non-viable on VideoCore VII:</p>
+<ol>
+  <li><strong>Missing fp16 accumulation:</strong> NCNN convolution kernels rely on 16-bit accumulation; its absence forces a SPIR-V fallback that doubles register pressure.</li>
+  <li><strong>Single compute queue:</strong> Prevents overlapping memory transfers with computation, serializing every <code>vkQueueSubmit</code>.</li>
+  <li><strong>No cooperative matrix extension (VK_KHR_cooperative_matrix):</strong> Forces scalar/vector GEMM paths for fully-connected layers and 1×1 convolutions.</li>
+  <li><strong>SPIR-V JIT compilation (Mesa v3dv):</strong> Cold-start compilation of ~150 unique shader variants contributes >10 s latency; cache invalidation explains the second-run regression (15 s → 47 s).</li>
+</ol>
+
+<h3>9.3 Classes Mode vs. Model Mode Trade-off</h3>
+<p>The 3–8 second CLIP encoding overhead of Classes Mode is prohibitive for reactive robotics. Model Mode resolves this at the cost of disk space (~18 GB for all 365 scenes as frozen models). A practical middle ground is a <em>hot-cache</em> strategy: pre-generate frozen models for the 20–30 most common deployment scenes, falling back to Classes Mode for rare scenes. This reduces disk usage to ~1.5 GB while keeping switches under 600 ms for >90% of real-world environments.</p>
+
+<h3>9.4 Objects365 vs. COCO-80</h3>
+<p>Objects365 provides on average 1.97× more semantically relevant classes per scene. For indoor scenes with specialized equipment (hospital: +167%, concert: ∞), the gain is dramatic. For outdoor transport scenes (street: +58%), the gain is moderate but meaningful. The trade-off is potential detection noise: more candidate classes increase the chance of false positives at low confidence thresholds. We recommend a confidence threshold of 0.35–0.45 for Objects365 mode vs. 0.25–0.35 for COCO-80.</p>
+
+<h3>9.5 Practical Deployment Recommendations</h3>
+<ol>
+  <li><strong>Use TFLite float16 for YOLO26n</strong> (fixed-class scenes): 302 ms, 3.2 FPS, 34% faster than PyTorch.</li>
+  <li><strong>Use YOLOv8s-WorldV2 in Model Mode</strong> for open-vocabulary scenes: 450 ms switch + 240 ms inference.</li>
+  <li><strong>Do not use NCNN Vulkan on Pi 5 VideoCore VII</strong> for neural inference.</li>
+  <li><strong>Use N=3 stability threshold</strong> for Phase 1 scene debounce; increase to N=5 in high-vibration environments.</li>
+  <li><strong>For sub-100 ms inference</strong>, add Hailo-8L AI HAT+ (26 TOPS via PCIe M.2).</li>
+  <li><strong>Use WebRTC</strong> where latency is critical; MJPEG for broader compatibility.</li>
+</ol>
+
+<!-- SECTION 10 -->
+<h2 id="sec10"><span class="section-num">10.</span> Conclusion &amp; Future Work</h2>
+
+<p>We presented Adaptive Hierarchical Detection (AHD), a two-phase framework that combines GoogLeNet scene recognition (Places365, 1 Hz) with dynamic YOLOv8-World class scoping (3–5 Hz) to achieve context-aware object detection on Raspberry Pi 5. The framework achieves 100% semantic relevance of detected classes by restricting the open-vocabulary search space to scene-appropriate subsets drawn from a dual-vocabulary SQLite context database (COCO-80 and Objects365, 365 scenes each).</p>
+
+<p>Our inference benchmark establishes TFLite float16 + XNNPACK as the optimal CPU format at 302 ms (3.2 FPS), outperforming PyTorch by 34% and ONNX by 28%. NCNN Vulkan on VideoCore VII is non-viable at 15,000–47,000 ms due to structural GPU limitations. Context switching in Classes Mode (3–8 s) can be reduced to 300–600 ms via Model Mode at a disk cost of ~50 MB/scene.</p>
+
+<p>The complete system is deployed and validated on a Yahboom RaspBot V2, integrating motor control, servo, LED, buzzer, sensor monitoring, and MJPEG/WebRTC streaming in a production Docker container.</p>
+
+<h3>Future Work</h3>
+<ul>
+  <li><strong>Hailo-8L NPU integration:</strong> Target <10 ms inference via PCIe AI HAT+ for real-time Phase 2 at 30 FPS.</li>
+  <li><strong>Quantized Phase 1:</strong> Export GoogLeNet to TFLite INT8 to reduce Phase 1 CPU cost from ~50 ms to ~10 ms.</li>
+  <li><strong>Hot-cache frozen models:</strong> Pre-generate top-30 scene models to bring Model Mode disk usage to ~1.5 GB.</li>
+  <li><strong>Adaptive threshold tuning:</strong> Auto-calibrate confidence thresholds per scene based on historical false-positive rates.</li>
+  <li><strong>SLAM integration:</strong> Combine AHD with ORB-SLAM3 for persistent scene maps that pre-warm context before entering a new room.</li>
+  <li><strong>Multi-label scene recognition:</strong> Replace top-1 scene with top-K union for transitional environments (e.g., kitchen-living_room open plans).</li>
+</ul>
+
+<hr>
+
+<h2>References</h2>
+<ol style="font-size:0.88rem; line-height:1.7;">
+  <li>B. Zhou et al., "Places: A 10 million image database for scene recognition," <em>IEEE TPAMI</em>, 2018.</li>
+  <li>S. Shao et al., "Objects365: A Large-Scale, High-Quality Dataset for Object Detection," <em>ICCV</em>, 2019.</li>
+  <li>T.-Y. Lin et al., "Microsoft COCO: Common Objects in Context," <em>ECCV</em>, 2014.</li>
+  <li>A. Radford et al., "Learning Transferable Visual Models from Natural Language Supervision (CLIP)," <em>ICML</em>, 2021.</li>
+  <li>T. Cheng et al., "YOLO-World: Real-Time Open-Vocabulary Object Detection," <em>CVPR</em>, 2024.</li>
+  <li>A. Jocher et al., "Ultralytics YOLOv8," ultralytics.com, 2023.</li>
+  <li>T. David et al., "TensorFlow Lite: On-Device Machine Learning Inference," arXiv, 2021.</li>
+  <li>XNNPACK: "XNNPACK: Accelerated Neural Network Computations for ARM," GitHub, 2022.</li>
+  <li>ONNX Runtime: "ONNX Runtime: Cross-Platform, High Performance ML Inferencing," onnxruntime.ai, 2023.</li>
+  <li>NCNN: "NCNN: High-performance neural network inference framework," GitHub, 2023.</li>
+  <li>Raspberry Pi Foundation: "Raspberry Pi 5 Product Brief," 2023.</li>
+  <li>Mesa Project: "v3dv: Vulkan Driver for Broadcom VideoCore VII," Mesa 23.2, 2024.</li>
+  <li>M. T. Mukhayyar, K. Takano, I. Winarno, "Edge Inference Acceleration for YOLO-Based Object Detection on Raspberry Pi 5," PENS-KAIT Technical Report, 2026.</li>
+</ol>
+
+<hr>
+<p style="font-size:0.8rem; color:#888; text-align:center;">
+  PENS-KAIT 2026 Joint Research Programme · Kanagawa Institute of Technology · Politeknik Elektronika Negeri Surabaya<br>
+  Generated: March 16, 2026 · Muhammad Tsaqif Mukhayyar · Kosuke Takano · Idris Winarno
+</p>
+
+<!-- CHARTS SCRIPTS -->
+<script>
+// Figure 4: Vocabulary comparison per scene
+new Chart(document.getElementById('chartVocab'), {
+  type: 'bar',
+  data: {
+    labels: ['living_room','kitchen','office','hospital','street','concert','bedroom','park','Avg'],
+    datasets: [
+      { label: 'COCO-80', data: [14,13,10,6,12,0,11,8,11.8], backgroundColor: 'rgba(46,134,193,0.75)', borderColor: '#1a5276', borderWidth: 1 },
+      { label: 'Objects365', data: [32,22,22,16,19,11,28,14,35], backgroundColor: 'rgba(30,132,73,0.75)', borderColor: '#145a32', borderWidth: 1 }
+    ]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Classes per Scene: COCO-80 vs Objects365' } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Classes' } } }
+  }
+});
+
+// Figure 5: Scene distribution
+new Chart(document.getElementById('chartSceneDist'), {
+  type: 'bar',
+  data: {
+    labels: ['1–4','5–7','8–10','11–13','14–16','17–18'],
+    datasets: [{
+      label: 'Number of Scenes',
+      data: [8, 42, 95, 140, 65, 15],
+      backgroundColor: 'rgba(46,134,193,0.7)',
+      borderColor: '#1a5276', borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'COCO-80 Class Count Distribution (365 scenes)' } },
+    scales: { x: { title: { display: true, text: 'Classes per Scene' } }, y: { beginAtZero: true, title: { display: true, text: 'Scene Count' } } }
+  }
+});
+
+// Figure 7: Inference latency breakdown
+new Chart(document.getElementById('chartInference'), {
+  type: 'bar',
+  data: {
+    labels: ['PyTorch .pt','ONNX Runtime','TFLite float32','TFLite float16 ★'],
+    datasets: [
+      { label: 'Preprocess', data: [9.9,14.6,11.3,9.2], backgroundColor: 'rgba(52,152,219,0.8)' },
+      { label: 'Inference', data: [460.8,420.3,309.1,302.0], backgroundColor: 'rgba(231,76,60,0.8)' },
+      { label: 'Postprocess', data: [1.0,0.9,0.5,0.9], backgroundColor: 'rgba(46,204,113,0.8)' }
+    ]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'YOLO26n Inference Latency Breakdown (ms)' } },
+    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Latency (ms)' } } }
+  }
+});
+
+// Figure 8: Speedup
+new Chart(document.getElementById('chartSpeedup'), {
+  type: 'bar',
+  data: {
+    labels: ['PyTorch .pt','ONNX Runtime','TFLite float32','TFLite float16 ★'],
+    datasets: [
+      { label: 'Speedup vs PyTorch', data: [1.0, 1.08, 1.47, 1.51], backgroundColor: ['rgba(200,200,200,0.8)','rgba(52,152,219,0.7)','rgba(46,204,113,0.7)','rgba(30,132,73,0.9)'], yAxisID: 'y' },
+      { label: 'FPS', data: [2.1, 2.3, 3.1, 3.2], backgroundColor: 'rgba(231,76,60,0.0)', borderColor: '#e74c3c', type: 'line', yAxisID: 'y2', tension: 0.3, pointRadius: 5, borderWidth: 2 }
+    ]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Speedup Ratio & FPS by Format' } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Speedup (×)' } }, y2: { beginAtZero: true, position: 'right', title: { display: true, text: 'FPS' }, grid: { drawOnChartArea: false } } }
+  }
+});
+
+// Figure 9: Vulkan comparison (log scale)
+new Chart(document.getElementById('chartVulkan'), {
+  type: 'bar',
+  data: {
+    labels: ['TFLite float16','TFLite float32','ONNX Runtime','PyTorch .pt','NCNN Vulkan (cold)','NCNN Vulkan (warm)'],
+    datasets: [{
+      label: 'Total Inference (ms) — log scale',
+      data: [312.1, 320.9, 435.8, 471.7, 15413.8, 46782.5],
+      backgroundColor: ['rgba(30,132,73,0.8)','rgba(46,204,113,0.7)','rgba(52,152,219,0.7)','rgba(52,152,219,0.5)','rgba(231,76,60,0.8)','rgba(192,57,43,0.9)']
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, title: { display: true, text: 'All Backends: Total Inference Latency (ms, log scale)' } },
+    scales: { y: { type: 'logarithmic', title: { display: true, text: 'Latency ms (log)' } } }
+  }
+});
+
+// Figure 10: Context switch latency (log)
+new Chart(document.getElementById('chartContextSwitch'), {
+  type: 'bar',
+  data: {
+    labels: ['DB Query only','Model Mode (load .pt)','YOLO Inference\n(256×256)','Classes Mode min\n(set_classes)','Classes Mode max\n(set_classes)'],
+    datasets: [{
+      label: 'Latency (ms)',
+      data: [0.7, 450, 240, 3000, 8000],
+      backgroundColor: ['rgba(30,132,73,0.8)','rgba(46,204,113,0.8)','rgba(52,152,219,0.8)','rgba(230,126,34,0.8)','rgba(192,57,43,0.8)']
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, title: { display: true, text: 'Phase 2 Operation Latencies (ms, log scale)' } },
+    scales: { y: { type: 'logarithmic', title: { display: true, text: 'Latency ms (log)' } } }
+  }
+});
+
+// Figure 12: Streaming latency
+new Chart(document.getElementById('chartStreamLatency'), {
+  type: 'bar',
+  data: {
+    labels: ['Capture','Encode/Package','Buffering/Transit','Browser Decode','Total'],
+    datasets: [
+      { label: 'MJPEG', data: [5, 12, 300, 16, 333], backgroundColor: 'rgba(52,152,219,0.7)' },
+      { label: 'WebRTC', data: [5, 4, 12, 8, 29], backgroundColor: 'rgba(30,132,73,0.7)' }
+    ]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Streaming Latency Breakdown (ms) — Estimated, LAN' } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Latency (ms)' } } }
+  }
+});
+
+// Figure 13: Thread rates
+new Chart(document.getElementById('chartThreads'), {
+  type: 'radar',
+  data: {
+    labels: ['Camera\n(30 Hz)','YOLO\n(3–5 Hz)','Phase 1\n(1 Hz)','Sensors\n(3 Hz)','Broadcast\n(4 Hz)'],
+    datasets: [{
+      label: 'Hz (normalized to 30)',
+      data: [30, 4, 1, 3, 4],
+      backgroundColor: 'rgba(46,134,193,0.25)',
+      borderColor: '#2e86c1',
+      pointBackgroundColor: '#2e86c1'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, title: { display: true, text: 'Daemon Thread Execution Rates (Hz)' } },
+    scales: { r: { beginAtZero: true, max: 30 } }
+  }
+});
+
+// Figure 14: Phase 2 components log
+new Chart(document.getElementById('chartPhase2Components'), {
+  type: 'bar',
+  data: {
+    labels: ['DB Query','YOLO Inference\n@ 256×256','Model Mode\n(load .pt)','CLIP encode\nClasses Mode min','CLIP encode\nClasses Mode max'],
+    datasets: [{
+      label: 'Latency (ms)',
+      data: [0.7, 240, 450, 3000, 8000],
+      backgroundColor: ['rgba(30,132,73,0.8)','rgba(52,152,219,0.8)','rgba(46,204,113,0.8)','rgba(230,126,34,0.8)','rgba(192,57,43,0.8)']
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, title: { display: true, text: 'Phase 2 Component Latency (ms, log scale)' } },
+    scales: { y: { type: 'logarithmic', title: { display: true, text: 'Latency ms (log)' } } }
+  }
+});
+</script>
+</body>
+</html>

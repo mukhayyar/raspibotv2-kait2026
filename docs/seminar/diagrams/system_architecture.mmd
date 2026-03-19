@@ -1,0 +1,50 @@
+graph TB
+    subgraph Browser["Browser Client"]
+        direction TB
+        UI["React 19 SPA<br/>(Vite 7)"]
+        WS_CLIENT["Socket.IO Client"]
+        MJPEG["MJPEG / WebRTC<br/>Camera Feed"]
+    end
+
+    subgraph NGINX["nginx :3000"]
+        PROXY["Reverse Proxy"]
+    end
+
+    subgraph Backend["Backend Flask :5000"]
+        direction TB
+        APP["app.py<br/>Flask + Socket.IO"]
+        subgraph Threads["Daemon Threads"]
+            T1["camera_thread<br/>(CSI / USB)"]
+            T2["inference_thread<br/>(YOLO Phase 2)"]
+            T3["phase1_thread<br/>(GoogLeNet)"]
+            T4["sensor_thread<br/>(I2C polling)"]
+            T5["broadcast_thread<br/>(status @ 4 Hz)"]
+        end
+        CM["ContextManager<br/>(context.db)"]
+        AUTH["Auth + Access Log<br/>(access.db)"]
+    end
+
+    subgraph Hardware["Raspberry Pi 5 Hardware"]
+        CAM["CSI / USB Camera"]
+        MOTOR["4WD Motor Driver<br/>(I2C)"]
+        SERVO["Pan/Tilt Servos<br/>(I2C)"]
+        LED["WS2812 LEDs"]
+        BUZ["Buzzer"]
+        SENS["Ultrasonic / IR /<br/>Line-Track Sensors"]
+    end
+
+    UI <-->|"Socket.IO events"| WS_CLIENT
+    WS_CLIENT <-->|"WebSocket / HTTP"| PROXY
+    PROXY <-->|"proxy_pass :5000"| APP
+    APP <--> CM
+    APP <--> AUTH
+    APP --> Threads
+    T1 <-->|"YUV420 pipe"| CAM
+    T2 -->|"YOLO inference"| APP
+    T3 -->|"Places365 scene"| APP
+    T4 <-->|"smbus2 I2C"| SENS
+    APP <-->|"Raspbot_Lib I2C"| MOTOR
+    APP <-->|"Raspbot_Lib I2C"| SERVO
+    APP -->|"GPIO / I2C"| LED
+    APP -->|"GPIO"| BUZ
+    MJPEG <-->|"/video_feed MJPEG"| PROXY

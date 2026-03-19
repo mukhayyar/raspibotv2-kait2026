@@ -5,11 +5,14 @@ services:
     env_file: ./backend/.env
     environment:
       - CAMERA_TYPE=${CAMERA_TYPE:-AUTO}  # AUTO, CSI, or USB
-    ports:
-      - "5000:5000"
+    # network_mode: host gives aiortc direct access to the Pi's real network
+    # interfaces so WebRTC ICE candidates are reachable from browser clients.
+    # Port 5000 is exposed directly on the host — no mapping needed.
+    network_mode: host
     volumes:
       - ./backend/data:/app/data                     # Mount data from host (persist DBs)
       - /dev:/dev                                    # pass all devices (camera, I2C, etc.)
+      - /run/udev:/run/udev:ro                       # required for libcamera discovery
       - ./backend/models:/app/models                 # Mount models from host (don't build them in)
     privileged: true                                # required for hardware access
     restart: always
@@ -19,6 +22,10 @@ services:
     container_name: pens-kait-frontend
     ports:
       - "3000:80"
+    # Allows nginx inside the container to resolve the host's loopback
+    # (where the backend now listens via network_mode: host).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     restart: always

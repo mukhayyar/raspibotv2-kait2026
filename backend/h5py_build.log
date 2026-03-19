@@ -1,0 +1,2019 @@
+DEBUG uv 0.10.2
+DEBUG Acquired shared lock for `/home/takanolab/.cache/uv`
+DEBUG Searching for default Python interpreter in virtual environments
+DEBUG Found `cpython-3.11.2-linux-aarch64-gnu` at `/home/takanolab/yahboom_control/PENS-KAIT 2026/backend/.venv/bin/python3` (virtual environment)
+DEBUG Using Python 3.11.2 environment at: .venv
+DEBUG Acquired exclusive lock for `.venv`
+DEBUG At least one requirement is not satisfied: h5py==3.11.0
+DEBUG Using request connect timeout of 10s and read timeout of 30s
+DEBUG Solving with installed Python version: 3.11.2
+DEBUG Solving with target Python version: >=3.11.2
+DEBUG Adding direct dependency: h5py>=3.11.0, <3.11.0+
+DEBUG Found fresh response for: https://pypi.org/simple/h5py/
+DEBUG Searching for a compatible version of h5py (>=3.11.0, <3.11.0+)
+DEBUG Selecting: h5py==3.11.0 [compatible] (h5py-3.11.0.tar.gz)
+DEBUG Found fresh response for: https://files.pythonhosted.org/packages/a0/52/38bb74cc4362738cc7ef819503fc54d70f0c3a7378519ccb0ac309389122/h5py-3.11.0-cp311-cp311-macosx_10_9_x86_64.whl.metadata
+DEBUG Adding transitive dependency for h5py==3.11.0: numpy>=1.17.3
+DEBUG Found fresh response for: https://pypi.org/simple/numpy/
+DEBUG Searching for a compatible version of numpy (>=1.17.3)
+DEBUG Selecting: numpy==2.4.2 [installed] (installed)
+DEBUG Tried 2 versions: h5py 1, numpy 1
+DEBUG marker environment resolution took 0.013s
+Resolved 2 packages in 14ms
+DEBUG Requirement installed, but mismatched:
+  Installed: InstalledDist { kind: Registry(InstalledRegistryDist { name: PackageName("h5py"), version: "3.15.1", path: "/home/takanolab/yahboom_control/PENS-KAIT 2026/backend/.venv/lib/python3.11/site-packages/h5py-3.15.1.dist-info", cache_info: None, build_info: None }), metadata_cache: OnceLock(<uninit>), tags_cache: OnceLock(<uninit>) }
+  Requested: Registry { specifier: VersionSpecifiers([VersionSpecifier { operator: Equal, version: "3.11.0" }]), index: Some(IndexMetadata { url: Pypi(VerbatimUrl { url: DisplaySafeUrl { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("pypi.org")), port: None, path: "/simple", query: None, fragment: None }, given: None }), format: Simple }), conflict: None }
+DEBUG Identified uncached distribution: h5py==3.11.0
+DEBUG Requirement already installed: numpy==2.4.2
+DEBUG Unnecessary package: absl-py==2.4.0
+DEBUG Unnecessary package: astunparse==1.6.3
+DEBUG Unnecessary package: bidict==0.23.1
+DEBUG Unnecessary package: blinker==1.9.0
+DEBUG Unnecessary package: certifi==2026.1.4
+DEBUG Unnecessary package: charset-normalizer==3.4.4
+DEBUG Unnecessary package: click==8.3.1
+DEBUG Unnecessary package: clip==1.0 (from git+https://github.com/ultralytics/CLIP.git@88ade288431a46233f1556d1e141901b3ef0a36b)
+DEBUG Unnecessary package: colorama==0.4.6
+DEBUG Unnecessary package: contourpy==1.3.3
+DEBUG Unnecessary package: cycler==0.12.1
+DEBUG Unnecessary package: filelock==3.24.2
+DEBUG Unnecessary package: flask==3.1.2
+DEBUG Unnecessary package: flask-cors==6.0.2
+DEBUG Unnecessary package: flask-socketio==5.6.0
+DEBUG Unnecessary package: flatbuffers==25.12.19
+DEBUG Unnecessary package: fonttools==4.61.1
+DEBUG Unnecessary package: fsspec==2026.2.0
+DEBUG Unnecessary package: ftfy==6.3.1
+DEBUG Unnecessary package: gast==0.7.0
+DEBUG Unnecessary package: google-pasta==0.2.0
+DEBUG Unnecessary package: grpcio==1.78.1
+DEBUG Unnecessary package: h11==0.16.0
+DEBUG Unnecessary package: idna==3.11
+DEBUG Unnecessary package: itsdangerous==2.2.0
+DEBUG Unnecessary package: jinja2==3.1.6
+DEBUG Unnecessary package: keras==3.13.2
+DEBUG Unnecessary package: kiwisolver==1.4.9
+DEBUG Unnecessary package: lapx==0.9.4
+DEBUG Unnecessary package: libclang==18.1.1
+DEBUG Unnecessary package: markdown==3.10.2
+DEBUG Unnecessary package: markdown-it-py==4.0.0
+DEBUG Unnecessary package: markupsafe==3.0.3
+DEBUG Unnecessary package: matplotlib==3.10.8
+DEBUG Unnecessary package: mdurl==0.1.2
+DEBUG Unnecessary package: ml-dtypes==0.5.4
+DEBUG Unnecessary package: mpmath==1.3.0
+DEBUG Unnecessary package: namex==0.1.0
+DEBUG Unnecessary package: ncnn==1.0.20260114
+DEBUG Unnecessary package: networkx==3.6.1
+DEBUG Unnecessary package: onnx==1.20.1
+DEBUG Unnecessary package: onnxruntime==1.24.1
+DEBUG Unnecessary package: onnxslim==0.1.85
+DEBUG Unnecessary package: opencv-python==4.13.0.92
+DEBUG Unnecessary package: opencv-python-headless==4.13.0.92
+DEBUG Unnecessary package: opt-einsum==3.4.0
+DEBUG Unnecessary package: optree==0.19.0
+DEBUG Unnecessary package: packaging==26.0
+DEBUG Unnecessary package: pillow==12.1.1
+DEBUG Unnecessary package: pnnx==20260112
+DEBUG Unnecessary package: polars==1.38.1
+DEBUG Unnecessary package: polars-runtime-32==1.38.1
+DEBUG Unnecessary package: portalocker==3.2.0
+DEBUG Unnecessary package: protobuf==6.33.5
+DEBUG Unnecessary package: psutil==7.2.2
+DEBUG Unnecessary package: pygments==2.19.2
+DEBUG Unnecessary package: pyparsing==3.3.2
+DEBUG Unnecessary package: python-dateutil==2.9.0.post0
+DEBUG Unnecessary package: python-dotenv==1.2.1
+DEBUG Unnecessary package: python-engineio==4.13.1
+DEBUG Unnecessary package: python-socketio==5.16.1
+DEBUG Unnecessary package: pyyaml==6.0.3
+DEBUG Unnecessary package: raspbot-lib==0.0.2 (from file:///home/takanolab/yahboom_control/py_install)
+DEBUG Unnecessary package: regex==2026.1.15
+DEBUG Unnecessary package: requests==2.32.5
+DEBUG Unnecessary package: rich==14.3.3
+DEBUG Unnecessary package: scipy==1.17.0
+DEBUG Unnecessary package: setuptools==82.0.0
+DEBUG Unnecessary package: simple-websocket==1.1.0
+DEBUG Unnecessary package: six==1.17.0
+DEBUG Unnecessary package: smbus2==0.6.0
+DEBUG Unnecessary package: sympy==1.14.0
+DEBUG Unnecessary package: tensorboard==2.20.0
+DEBUG Unnecessary package: tensorboard-data-server==0.7.2
+DEBUG Unnecessary package: tensorflow==2.20.0
+DEBUG Unnecessary package: termcolor==3.3.0
+DEBUG Unnecessary package: torch==2.10.0
+DEBUG Unnecessary package: torchvision==0.25.0
+DEBUG Unnecessary package: tqdm==4.67.3
+DEBUG Unnecessary package: typing-extensions==4.15.0
+DEBUG Unnecessary package: ultralytics==8.4.14
+DEBUG Unnecessary package: ultralytics-thop==2.0.18
+DEBUG Unnecessary package: urllib3==2.6.3
+DEBUG Unnecessary package: wcwidth==0.6.0
+DEBUG Unnecessary package: werkzeug==3.1.5
+DEBUG Unnecessary package: wheel==0.46.3
+DEBUG Unnecessary package: wrapt==2.1.1
+DEBUG Unnecessary package: wsproto==1.3.2
+DEBUG Acquired exclusive lock for `/home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0`
+DEBUG Found fresh response for: https://files.pythonhosted.org/packages/52/8f/e557819155a282da36fb21f8de4730cfd10a964b52b3ae8d20157ac1c668/h5py-3.11.0.tar.gz
+   Building h5py==3.11.0
+DEBUG Building: h5py==3.11.0
+DEBUG Not using uv build backend direct build of `h5py==3.11.0`, pyproject.toml does not match: The value for `build_system.build-backend` should be `"uv_build"`, not `"setuptools.build_meta"`
+DEBUG Assessing Python executable as base candidate: /usr/bin/python3.11
+DEBUG Reusing existing build environment for: h5py==3.11.0
+DEBUG No workspace root found, using project root
+DEBUG Using base executable for virtual environment: /usr/bin/python3.11
+DEBUG Resolving build requirements
+DEBUG Solving with installed Python version: 3.11.2
+DEBUG Solving with target Python version: >=3.11.2
+DEBUG Adding direct dependency: cython>=0.29.31, <4
+DEBUG Adding direct dependency: numpy{python_full_version >= '3.9'}>=2.0.0rc1
+DEBUG Adding direct dependency: pkgconfig*
+DEBUG Adding direct dependency: setuptools>=61
+DEBUG Found fresh response for: https://pypi.org/simple/pkgconfig/
+DEBUG Found fresh response for: https://files.pythonhosted.org/packages/32/af/89487c7bbf433f4079044f3dc32f9a9f887597fe04614a37a292e373e16b/pkgconfig-1.5.5-py3-none-any.whl.metadata
+DEBUG Found fresh response for: https://pypi.org/simple/setuptools/
+DEBUG Found fresh response for: https://pypi.org/simple/cython/
+DEBUG Found fresh response for: https://files.pythonhosted.org/packages/e1/c6/76dc613121b793286a3f91621d7b75a2b493e0390ddca50f11993eadf192/setuptools-82.0.0-py3-none-any.whl.metadata
+DEBUG Searching for a compatible version of cython (>=0.29.31, <4)
+DEBUG Selecting: cython==3.2.4 [compatible] (cython-3.2.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl)
+DEBUG Found fresh response for: https://files.pythonhosted.org/packages/55/b0/706cf830eddd831666208af1b3058c2e0758ae157590909c1f634b53bed9/cython-3.2.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata
+DEBUG Searching for a compatible version of numpy{python_full_version >= '3.9'} (>=2.0.0rc1)
+DEBUG Selecting: numpy==2.4.2 [compatible] (numpy-2.4.2-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl)
+DEBUG Adding transitive dependency for numpy==2.4.2: numpy==2.4.2
+DEBUG Adding transitive dependency for numpy==2.4.2: numpy{python_full_version >= '3.9'}==2.4.2
+DEBUG Searching for a compatible version of numpy (==2.4.2)
+DEBUG Selecting: numpy==2.4.2 [compatible] (numpy-2.4.2-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl)
+DEBUG Searching for a compatible version of numpy{python_full_version >= '3.9'} (==2.4.2)
+DEBUG Selecting: numpy==2.4.2 [compatible] (numpy-2.4.2-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl)
+DEBUG Searching for a compatible version of pkgconfig (*)
+DEBUG Selecting: pkgconfig==1.5.5 [compatible] (pkgconfig-1.5.5-py3-none-any.whl)
+DEBUG Searching for a compatible version of setuptools (>=61)
+DEBUG Selecting: setuptools==82.0.0 [compatible] (setuptools-82.0.0-py3-none-any.whl)
+DEBUG Tried 4 versions: cython 1, numpy 1, pkgconfig 1, setuptools 1
+DEBUG marker environment resolution took 0.006s
+DEBUG Installing in cython==3.2.4, pkgconfig==1.5.5, numpy==2.4.2, setuptools==82.0.0 in /home/takanolab/.cache/uv/builds-v0/.tmpfW307d
+DEBUG Registry requirement already cached: cython==3.2.4
+DEBUG Registry requirement already cached: pkgconfig==1.5.5
+DEBUG Registry requirement already cached: numpy==2.4.2
+DEBUG Registry requirement already cached: setuptools==82.0.0
+DEBUG Installing build requirements: cython==3.2.4, pkgconfig==1.5.5, numpy==2.4.2, setuptools==82.0.0
+DEBUG Creating PEP 517 build environment
+DEBUG Calling `setuptools.build_meta.get_requires_for_build_wheel()`
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+DEBUG 
+DEBUG         By 2027-Feb-18, you need to update your project and remove deprecated calls
+DEBUG         or your builds will no longer be supported.
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   corresp(dist, value, root_dir)
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please consider removing the following classifiers in favor of a SPDX license expression:
+DEBUG 
+DEBUG         License :: OSI Approved :: BSD License
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   dist._finalize_license_expression()
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py:765: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please consider removing the following classifiers in favor of a SPDX license expression:
+DEBUG 
+DEBUG         License :: OSI Approved :: BSD License
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   self._finalize_license_expression()
+DEBUG running egg_info
+DEBUG writing h5py.egg-info/PKG-INFO
+DEBUG writing dependency_links to h5py.egg-info/dependency_links.txt
+DEBUG writing requirements to h5py.egg-info/requires.txt
+DEBUG writing top-level names to h5py.egg-info/top_level.txt
+DEBUG reading manifest file 'h5py.egg-info/SOURCES.txt'
+DEBUG reading manifest template 'MANIFEST.in'
+DEBUG warning: no files found matching 'AUTHORS'
+DEBUG no previously-included directories found matching 'docs/_build'
+DEBUG no previously-included directories found matching 'docs_api/_build'
+DEBUG warning: no previously-included files matching '.DS_Store' found under directory '*'
+DEBUG warning: no previously-included files found matching 'ci'
+DEBUG warning: no previously-included files found matching 'other'
+DEBUG warning: no previously-included files found matching '.github'
+DEBUG warning: no previously-included files matching '*' found under directory 'ci'
+DEBUG warning: no previously-included files matching '*' found under directory 'other'
+DEBUG warning: no previously-included files matching '*' found under directory '.github'
+DEBUG warning: no previously-included files found matching '*.yml'
+DEBUG warning: no previously-included files found matching '*.yaml'
+DEBUG warning: no previously-included files matching '__pycache__' found under directory '*'
+DEBUG warning: no previously-included files matching '*.py[co]' found under directory '*'
+DEBUG warning: no previously-included files found matching '.coveragerc'
+DEBUG warning: no previously-included files found matching '.coverage_dir'
+DEBUG warning: no previously-included files matching '*' found under directory '.coverage_dir'
+DEBUG warning: no previously-included files found matching '.mailmap'
+DEBUG warning: no previously-included files found matching 'github_deploy_key_h5py_h5py.enc'
+DEBUG warning: no previously-included files found matching 'rever.xsh'
+DEBUG no previously-included directories found matching 'news'
+DEBUG adding license file 'LICENSE'
+DEBUG writing manifest file 'h5py.egg-info/SOURCES.txt'
+DEBUG No workspace root found, using project root
+DEBUG Locking the source tree for setuptools
+DEBUG Acquired exclusive lock for `/home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src`
+DEBUG Calling `setuptools.build_meta.build_wheel("/home/takanolab/.cache/uv/builds-v0/.tmpqQYcKp", {}, None)`
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+DEBUG 
+DEBUG         By 2027-Feb-18, you need to update your project and remove deprecated calls
+DEBUG         or your builds will no longer be supported.
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   corresp(dist, value, root_dir)
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please consider removing the following classifiers in favor of a SPDX license expression:
+DEBUG 
+DEBUG         License :: OSI Approved :: BSD License
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   dist._finalize_license_expression()
+DEBUG /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py:765: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please consider removing the following classifiers in favor of a SPDX license expression:
+DEBUG 
+DEBUG         License :: OSI Approved :: BSD License
+DEBUG 
+DEBUG         See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   self._finalize_license_expression()
+DEBUG running bdist_wheel
+DEBUG running build
+DEBUG running build_py
+DEBUG copying h5py/h5py_warnings.py -> build/lib.linux-aarch64-cpython-311/h5py
+DEBUG copying h5py/__init__.py -> build/lib.linux-aarch64-cpython-311/h5py
+DEBUG copying h5py/ipy_completer.py -> build/lib.linux-aarch64-cpython-311/h5py
+DEBUG copying h5py/version.py -> build/lib.linux-aarch64-cpython-311/h5py
+DEBUG copying h5py/_hl/files.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/base.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/__init__.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/dataset.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/vds.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/group.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/datatype.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/selections.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/selections2.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/compat.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/filters.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/attrs.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/_hl/dims.py -> build/lib.linux-aarch64-cpython-311/h5py/_hl
+DEBUG copying h5py/tests/test_file.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_slicing.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_completions.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_errors.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_file_alignment.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_datatype.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5o.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dims_dimensionproxy.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_attribute_create.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_attrs.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/common.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_objects.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/__init__.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5z.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dataset_swmr.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_file_image.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_filters.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5d_direct_chunk.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dtype.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_attrs_data.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5p.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_ros3.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_selections.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5t.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dataset.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_base.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_file2.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/conftest.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5pl.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_h5f.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_group.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_big_endian_file.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dataset_getitem.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/test_dimension_scales.py -> build/lib.linux-aarch64-cpython-311/h5py/tests
+DEBUG copying h5py/tests/data_files/__init__.py -> build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+DEBUG copying h5py/tests/test_vds/__init__.py -> build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+DEBUG copying h5py/tests/test_vds/test_lowlevel_vds.py -> build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+DEBUG copying h5py/tests/test_vds/test_virtual_source.py -> build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+DEBUG copying h5py/tests/test_vds/test_highlevel_vds.py -> build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+DEBUG copying h5py/tests/data_files/vlen_string_s390x.h5 -> build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+DEBUG copying h5py/tests/data_files/vlen_string_dset_utc.h5 -> build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+DEBUG copying h5py/tests/data_files/vlen_string_dset.h5 -> build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+DEBUG running build_ext
+DEBUG warning: h5py/defs.pxd:66:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:68:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:70:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:72:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:74:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:100:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:102:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:197:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:199:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:201:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:202:4: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:204:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:205:4: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:207:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:209:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:228:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:230:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:232:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:234:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:280:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:282:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:318:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/defs.pxd:320:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:89:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:138:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:146:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:155:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:189:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:229:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:250:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:338:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:348:4: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:388:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:676:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_hdf5.pxd:708:2: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_ext.pxd:14:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_ext.pxd:25:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/api_types_ext.pxd:52:4: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/_conv.pyx:420:8: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG warning: h5py/h5r.pxd:17:0: The 'IF' statement is deprecated and will be removed in a future Cython version. Consider using runtime conditions or C macros instead. See https://github.com/cython/cython/issues/4310
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG from ._proxy cimport needs_bkg_buffer
+DEBUG cfg = get_config()
+DEBUG 
+DEBUG # Initialization of numpy
+DEBUG cimport numpy as cnp
+DEBUG from numpy cimport npy_intp, NPY_WRITEABLE, NPY_C_CONTIGUOUS, NPY_OWNDATA, PyArray_DATA
+DEBUG ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:30:0: 'numpy/NPY_WRITEABLE.pxd' not found
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG from ._proxy cimport needs_bkg_buffer
+DEBUG cfg = get_config()
+DEBUG 
+DEBUG # Initialization of numpy
+DEBUG cimport numpy as cnp
+DEBUG from numpy cimport npy_intp, NPY_WRITEABLE, NPY_C_CONTIGUOUS, NPY_OWNDATA, PyArray_DATA
+DEBUG ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:30:0: 'numpy/NPY_C_CONTIGUOUS.pxd' not found
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG from ._proxy cimport needs_bkg_buffer
+DEBUG cfg = get_config()
+DEBUG 
+DEBUG # Initialization of numpy
+DEBUG cimport numpy as cnp
+DEBUG from numpy cimport npy_intp, NPY_WRITEABLE, NPY_C_CONTIGUOUS, NPY_OWNDATA, PyArray_DATA
+DEBUG ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:30:0: 'numpy/NPY_OWNDATA.pxd' not found
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG     :param outtype: ?
+DEBUG     """
+DEBUG     cdef:
+DEBUG         PyObject** buf_obj = <PyObject**>opt
+DEBUG         vlen_t* in_vlen = <vlen_t*>ipt
+DEBUG         int flags = NPY_WRITEABLE | NPY_C_CONTIGUOUS | NPY_OWNDATA
+DEBUG                     ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:698:20: 'NPY_WRITEABLE' is not a constant, variable or function identifier
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG     :param outtype: ?
+DEBUG     """
+DEBUG     cdef:
+DEBUG         PyObject** buf_obj = <PyObject**>opt
+DEBUG         vlen_t* in_vlen = <vlen_t*>ipt
+DEBUG         int flags = NPY_WRITEABLE | NPY_C_CONTIGUOUS | NPY_OWNDATA
+DEBUG                                     ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:698:36: 'NPY_C_CONTIGUOUS' is not a constant, variable or function identifier
+DEBUG 
+DEBUG Error compiling Cython file:
+DEBUG ------------------------------------------------------------
+DEBUG ...
+DEBUG     :param outtype: ?
+DEBUG     """
+DEBUG     cdef:
+DEBUG         PyObject** buf_obj = <PyObject**>opt
+DEBUG         vlen_t* in_vlen = <vlen_t*>ipt
+DEBUG         int flags = NPY_WRITEABLE | NPY_C_CONTIGUOUS | NPY_OWNDATA
+DEBUG                                                        ^
+DEBUG ------------------------------------------------------------
+DEBUG h5py/_conv.pyx:698:55: 'NPY_OWNDATA' is not a constant, variable or function identifier
+DEBUG Traceback (most recent call last):
+DEBUG   File "<string>", line 11, in <module>
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py", line 438, in build_wheel
+DEBUG     return _build(['bdist_wheel'])
+DEBUG            ^^^^^^^^^^^^^^^^^^^^^^^
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py", line 429, in _build
+DEBUG     return self._build_with_temp_dir(
+DEBUG            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py", line 410, in _build_with_temp_dir
+DEBUG     self.run_setup()
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py", line 317, in run_setup
+DEBUG     exec(code, locals())
+DEBUG   File "<string>", line 68, in <module>
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/__init__.py", line 117, in setup
+DEBUG     return distutils.core.setup(**attrs)  # type: ignore[return-value]
+DEBUG            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/core.py", line 186, in setup
+DEBUG     return run_commands(dist)
+DEBUG            ^^^^^^^^^^^^^^^^^^
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/core.py", line 202, in run_commands
+DEBUG     dist.run_commands()
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py", line 1000, in run_commands
+DEBUG     self.run_command(cmd)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py", line 1107, in run_command
+DEBUG     super().run_command(command)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py", line 1019, in run_command
+DEBUG     cmd_obj.run()
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/command/bdist_wheel.py", line 370, in run
+DEBUG     self.run_command("build")
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/cmd.py", line 341, in run_command
+DEBUG     self.distribution.run_command(command)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py", line 1107, in run_command
+DEBUG     super().run_command(command)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py", line 1019, in run_command
+DEBUG     cmd_obj.run()
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/command/build.py", line 135, in run
+DEBUG     self.run_command(cmd_name)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/cmd.py", line 341, in run_command
+DEBUG     self.distribution.run_command(command)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py", line 1107, in run_command
+DEBUG     super().run_command(command)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py", line 1019, in run_command
+DEBUG     cmd_obj.run()
+DEBUG   File "/home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/setup_build.py", line 178, in run
+DEBUG     self.extensions = cythonize(self._make_extensions(config),
+DEBUG                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/Cython/Build/Dependencies.py", line 1153, in cythonize
+DEBUG     cythonize_one(*args)
+DEBUG   File "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/Cython/Build/Dependencies.py", line 1297, in cythonize_one
+DEBUG     raise CompileError(None, pyx_file)
+DEBUG Cython.Compiler.Errors.CompileError: /home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/h5py/_conv.pyx
+DEBUG Loading library to get build settings and version: /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so
+DEBUG ********************************************************************************
+DEBUG                        Summary of the h5py configuration
+DEBUG 
+DEBUG   HDF5 include dirs: [
+DEBUG   '/usr/include/hdf5/serial'
+DEBUG ]
+DEBUG   HDF5 library dirs: [
+DEBUG   '/usr/lib/aarch64-linux-gnu/hdf5/serial'
+DEBUG ]
+DEBUG        HDF5 Version: (1, 10, 8)
+DEBUG         MPI Enabled: False
+DEBUG    ROS3 VFD Enabled: True
+DEBUG  DIRECT VFD Enabled: False
+DEBUG    Rebuild Required: True
+DEBUG      MS-MPI Enabled: False
+DEBUG MS-MPI include dirs: []
+DEBUG MS-MPI library dirs: []
+DEBUG 
+DEBUG ********************************************************************************
+DEBUG Executing cythonize()
+DEBUG [ 1/24] Cythonizing /home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/h5py/_conv.pyx
+DEBUG Released lock at `/tmp/uv-setuptools-c1a1f1fdd67846ea.lock`
+DEBUG Released lock at `/home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/.lock`
+  × Failed
+  │ to build
+  │ `h5py==3.11.0`
+  ├─▶ The build
+  │   backend
+  │   returned an
+  │   error
+  ╰─▶ Call to
+      `setuptools.build_meta.build_wheel`
+      failed (exit
+      status: 1)
+
+      [stdout]
+      running
+      bdist_wheel
+      running
+      build
+      running
+      build_py
+      copying
+      h5py/h5py_warnings.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py
+      copying
+      h5py/__init__.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py
+      copying
+      h5py/ipy_completer.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py
+      copying
+      h5py/version.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py
+      copying
+      h5py/_hl/files.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/base.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/__init__.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/dataset.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/vds.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/group.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/datatype.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/selections.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/selections2.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/compat.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/filters.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/attrs.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/_hl/dims.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/_hl
+      copying
+      h5py/tests/test_file.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_slicing.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_completions.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_errors.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_file_alignment.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_datatype.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5o.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dims_dimensionproxy.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_attribute_create.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_attrs.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/common.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_objects.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/__init__.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5z.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dataset_swmr.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_file_image.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_filters.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5d_direct_chunk.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dtype.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_attrs_data.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5p.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_ros3.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_selections.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5t.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dataset.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_base.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_file2.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/conftest.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5pl.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_h5f.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_group.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_big_endian_file.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dataset_getitem.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/test_dimension_scales.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests
+      copying
+      h5py/tests/data_files/__init__.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+      copying
+      h5py/tests/test_vds/__init__.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+      copying
+      h5py/tests/test_vds/test_lowlevel_vds.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+      copying
+      h5py/tests/test_vds/test_virtual_source.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+      copying
+      h5py/tests/test_vds/test_highlevel_vds.py
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/test_vds
+      copying
+      h5py/tests/data_files/vlen_string_s390x.h5
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+      copying
+      h5py/tests/data_files/vlen_string_dset_utc.h5
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+      copying
+      h5py/tests/data_files/vlen_string_dset.h5
+      ->
+      build/lib.linux-aarch64-cpython-311/h5py/tests/data_files
+      running
+      build_ext
+      Loading
+      library to
+      get build
+      settings
+      and version:
+      /usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so
+      ********************************************************************************
+      
+      Summary of
+      the h5py
+      configuration
+
+        HDF5
+      include
+      dirs: [
+      
+      '/usr/include/hdf5/serial'
+      ]
+        HDF5
+      library
+      dirs: [
+      
+      '/usr/lib/aarch64-linux-gnu/hdf5/serial'
+      ]
+             HDF5
+      Version: (1,
+      10, 8)
+              MPI
+      Enabled:
+      False
+         ROS3 VFD
+      Enabled:
+      True
+       DIRECT VFD
+      Enabled:
+      False
+         Rebuild
+      Required:
+      True
+           MS-MPI
+      Enabled:
+      False
+      MS-MPI
+      include
+      dirs: []
+      MS-MPI
+      library
+      dirs: []
+
+      ********************************************************************************
+      Executing
+      cythonize()
+      [ 1/24]
+      Cythonizing
+      /home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/h5py/_conv.pyx
+
+      [stderr]
+      /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:82:
+      SetuptoolsDeprecationWarning:
+      `project.license`
+      as a TOML
+      table is
+      deprecated
+      !!
+
+      
+      ********************************************************************************
+      
+      Please use
+      a simple
+      string
+      containing
+      a SPDX
+      expression
+      for
+      `project.license`.
+      You can
+      also use
+      `project.license-files`.
+      (Both
+      options
+      available on
+      setuptools>=77.0.0).
+
+              By
+      2027-Feb-18,
+      you need
+      to update
+      your project
+      and remove
+      deprecated
+      calls
+              or
+      your builds
+      will no
+      longer be
+      supported.
+
+              See
+      https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+      for details.
+      
+      ********************************************************************************
+
+      !!
+      
+      corresp(dist,
+      value,
+      root_dir)
+      /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/config/_apply_pyprojecttoml.py:61:
+      SetuptoolsDeprecationWarning:
+      License
+      classifiers
+      are
+      deprecated.
+      !!
+
+      
+      ********************************************************************************
+      
+      Please
+      consider
+      removing the
+      following
+      classifiers
+      in favor
+      of a SPDX
+      license
+      expression:
+
+      
+      License ::
+      OSI Approved
+      :: BSD
+      License
+
+              See
+      https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+      for details.
+      
+      ********************************************************************************
+
+      !!
+      
+      dist._finalize_license_expression()
+      /home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py:765:
+      SetuptoolsDeprecationWarning:
+      License
+      classifiers
+      are
+      deprecated.
+      !!
+
+      
+      ********************************************************************************
+      
+      Please
+      consider
+      removing the
+      following
+      classifiers
+      in favor
+      of a SPDX
+      license
+      expression:
+
+      
+      License ::
+      OSI Approved
+      :: BSD
+      License
+
+              See
+      https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+      for details.
+      
+      ********************************************************************************
+
+      !!
+      
+      self._finalize_license_expression()
+      warning:
+      h5py/defs.pxd:66:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:68:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:70:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:72:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:74:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:100:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:102:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:197:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:199:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:201:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:202:4:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:204:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:205:4:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:207:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:209:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:228:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:230:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:232:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:234:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:280:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:282:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:318:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/defs.pxd:320:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:89:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:138:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:146:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:155:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:189:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:229:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:250:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:338:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:348:4:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:388:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:676:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_hdf5.pxd:708:2:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_ext.pxd:14:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_ext.pxd:25:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/api_types_ext.pxd:52:4:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/_conv.pyx:420:8:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+      warning:
+      h5py/h5r.pxd:17:0:
+      The 'IF'
+      statement is
+      deprecated
+      and will
+      be removed
+      in a future
+      Cython
+      version.
+      Consider
+      using
+      runtime
+      conditions
+      or C macros
+      instead. See
+      https://github.com/cython/cython/issues/4310
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+      from ._proxy
+      cimport
+      needs_bkg_buffer
+      cfg =
+      get_config()
+
+      #
+      Initialization
+      of numpy
+      cimport
+      numpy as cnp
+      from numpy
+      cimport
+      npy_intp,
+      NPY_WRITEABLE,
+      NPY_C_CONTIGUOUS,
+      NPY_OWNDATA,
+      PyArray_DATA
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:30:0:
+      'numpy/NPY_WRITEABLE.pxd'
+      not found
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+      from ._proxy
+      cimport
+      needs_bkg_buffer
+      cfg =
+      get_config()
+
+      #
+      Initialization
+      of numpy
+      cimport
+      numpy as cnp
+      from numpy
+      cimport
+      npy_intp,
+      NPY_WRITEABLE,
+      NPY_C_CONTIGUOUS,
+      NPY_OWNDATA,
+      PyArray_DATA
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:30:0:
+      'numpy/NPY_C_CONTIGUOUS.pxd'
+      not found
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+      from ._proxy
+      cimport
+      needs_bkg_buffer
+      cfg =
+      get_config()
+
+      #
+      Initialization
+      of numpy
+      cimport
+      numpy as cnp
+      from numpy
+      cimport
+      npy_intp,
+      NPY_WRITEABLE,
+      NPY_C_CONTIGUOUS,
+      NPY_OWNDATA,
+      PyArray_DATA
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:30:0:
+      'numpy/NPY_OWNDATA.pxd'
+      not found
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+          :param
+      outtype: ?
+          """
+          cdef:
+      
+      PyObject**
+      buf_obj =
+      <PyObject**>opt
+      
+      vlen_t*
+      in_vlen =
+      <vlen_t*>ipt
+              int
+      flags =
+      NPY_WRITEABLE
+      |
+      NPY_C_CONTIGUOUS
+      |
+      NPY_OWNDATA
+      
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:698:20:
+      'NPY_WRITEABLE'
+      is not a
+      constant,
+      variable
+      or function
+      identifier
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+          :param
+      outtype: ?
+          """
+          cdef:
+      
+      PyObject**
+      buf_obj =
+      <PyObject**>opt
+      
+      vlen_t*
+      in_vlen =
+      <vlen_t*>ipt
+              int
+      flags =
+      NPY_WRITEABLE
+      |
+      NPY_C_CONTIGUOUS
+      |
+      NPY_OWNDATA
+      
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:698:36:
+      'NPY_C_CONTIGUOUS'
+      is not a
+      constant,
+      variable
+      or function
+      identifier
+
+      Error
+      compiling
+      Cython file:
+      ------------------------------------------------------------
+      ...
+          :param
+      outtype: ?
+          """
+          cdef:
+      
+      PyObject**
+      buf_obj =
+      <PyObject**>opt
+      
+      vlen_t*
+      in_vlen =
+      <vlen_t*>ipt
+              int
+      flags =
+      NPY_WRITEABLE
+      |
+      NPY_C_CONTIGUOUS
+      |
+      NPY_OWNDATA
+      
+      ^
+      ------------------------------------------------------------
+      h5py/_conv.pyx:698:55:
+      'NPY_OWNDATA'
+      is not a
+      constant,
+      variable
+      or function
+      identifier
+      Traceback
+      (most recent
+      call last):
+        File
+      "<string>",
+      line 11, in
+      <module>
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py",
+      line 438, in
+      build_wheel
+          return
+      _build(['bdist_wheel'])
+      
+      ^^^^^^^^^^^^^^^^^^^^^^^
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py",
+      line 429, in
+      _build
+          return
+      self._build_with_temp_dir(
+      
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py",
+      line 410, in
+      _build_with_temp_dir
+      
+      self.run_setup()
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/build_meta.py",
+      line 317, in
+      run_setup
+      
+      exec(code,
+      locals())
+        File
+      "<string>",
+      line 68, in
+      <module>
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/__init__.py",
+      line 117, in
+      setup
+          return
+      distutils.core.setup(**attrs)
+      # type:
+      ignore[return-value]
+      
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/core.py",
+      line 186, in
+      setup
+          return
+      run_commands(dist)
+      
+      ^^^^^^^^^^^^^^^^^^
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/core.py",
+      line 202, in
+      run_commands
+      
+      dist.run_commands()
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py",
+      line
+      1000, in
+      run_commands
+      
+      self.run_command(cmd)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py",
+      line
+      1107, in
+      run_command
+      
+      super().run_command(command)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py",
+      line
+      1019, in
+      run_command
+      
+      cmd_obj.run()
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/command/bdist_wheel.py",
+      line 370, in
+      run
+      
+      self.run_command("build")
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/cmd.py",
+      line 341, in
+      run_command
+      
+      self.distribution.run_command(command)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py",
+      line
+      1107, in
+      run_command
+      
+      super().run_command(command)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py",
+      line
+      1019, in
+      run_command
+      
+      cmd_obj.run()
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/command/build.py",
+      line 135, in
+      run
+      
+      self.run_command(cmd_name)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/cmd.py",
+      line 341, in
+      run_command
+      
+      self.distribution.run_command(command)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/dist.py",
+      line
+      1107, in
+      run_command
+      
+      super().run_command(command)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/setuptools/_distutils/dist.py",
+      line
+      1019, in
+      run_command
+      
+      cmd_obj.run()
+        File
+      "/home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/setup_build.py",
+      line 178, in
+      run
+      
+      self.extensions
+      =
+      cythonize(self._make_extensions(config),
+      
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/Cython/Build/Dependencies.py",
+      line 1153,
+      in cythonize
+      
+      cythonize_one(*args)
+        File
+      "/home/takanolab/.cache/uv/builds-v0/.tmpfW307d/lib/python3.11/site-packages/Cython/Build/Dependencies.py",
+      line
+      1297, in
+      cythonize_one
+          raise
+      CompileError(None,
+      pyx_file)
+      Cython.Compiler.Errors.CompileError:
+      /home/takanolab/.cache/uv/sdists-v9/pypi/h5py/3.11.0/wnsUqMJuR8ARk4QyKLlnN/src/h5py/_conv.pyx
+
+      hint: This
+      usually
+      indicates a
+      problem with
+      the package
+      or the build
+      environment.
+DEBUG Released lock at `/home/takanolab/yahboom_control/PENS-KAIT 2026/backend/.venv/.lock`
+DEBUG Released lock at `/home/takanolab/.cache/uv/.lock`

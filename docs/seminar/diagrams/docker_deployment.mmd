@@ -1,0 +1,24 @@
+graph TB
+    subgraph Host["Raspberry Pi 5 Host (aarch64 / Bookworm)"]
+        subgraph DC["Docker Compose"]
+            subgraph FE["pens-kait-frontend\n(nginx :3000)"]
+                REACT["React SPA\n(dist/ from Vite)"]
+                NGINX["nginx reverse proxy\n/socket.io → backend:5000\n/video_feed → backend:5000"]
+            end
+            subgraph BE["pens-kait-backend\n(gunicorn :5000)\nnetwork_mode: host\nprivileged: true"]
+                FLASK["Flask + Socket.IO\napp.py"]
+                VOL1["/app/data ← ./backend/data\n(SQLite DBs)"]
+                VOL2["/app/models ← ./backend/models\n(YOLO model files)"]
+                VOL3["/dev ← /dev\n(camera, I2C)"]
+            end
+        end
+        DEV["Hardware Devices\n/dev/i2c-*\n/dev/video*\n/dev/gpiomem"]
+        CF["Cloudflare Tunnel\n(optional public HTTPS)"]
+    end
+    BROWSER["Remote Browser\nhttp://pi-ip:3000"]
+
+    BROWSER <-->|"HTTPS / WS"| CF
+    BROWSER <-->|"HTTP :3000"| FE
+    FE <-->|"proxy_pass"| BE
+    BE <-->|"smbus2 I2C\nrpicam-vid"| DEV
+    VOL1 & VOL2 & VOL3 --- BE
