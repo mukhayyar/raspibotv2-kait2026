@@ -31,7 +31,7 @@ export function useSocket() {
   const [triggeredAlerts, setTriggeredAlerts] = useState({});
 
   useEffect(() => {
-    const socket = io({ transports: ['polling', 'websocket'], upgrade: true });
+    const socket = io({ transports: ['websocket'] });
     socketRef.current = socket;
 
     socket.on('connect', () => setConnected(true));

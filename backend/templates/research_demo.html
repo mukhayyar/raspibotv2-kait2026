@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Demo — Two-Phase AHD Study Case</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --border:#30363d; --accent:#2e86c1;
+  --green:#1a8a45; --red:#c0392b; --orange:#e67e22; --purple:#6c3483;
+  --text:#e6edf3; --muted:#8b949e; --yellow:#f0c040;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;
+  font-size:13px;line-height:1.5;min-height:100vh}
+
+/* ── Top nav ── */
+.nav{background:var(--panel);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.nav-title{font-size:15px;font-weight:700;color:var(--accent)}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:12px;padding:4px 8px;
+  border-radius:4px;transition:.15s}
+.nav-links a:hover{background:var(--border);color:var(--text)}
+.nav-links{display:flex;gap:4px}
+
+/* ── Main layout ── */
+.main{padding:16px 20px;max-width:1400px;margin:0 auto}
+
+/* ── Presets bar ── */
+.presets-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.preset-btn{background:var(--panel);border:1px solid var(--border);color:var(--text);
+  padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;transition:.15s}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.preset-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+/* ── URL loader ── */
+.url-bar{display:flex;gap:8px;margin-bottom:16px;align-items:flex-start;flex-wrap:wrap}
+.url-input{flex:1;min-width:260px;background:#0d1117;border:1px solid var(--border);
+  color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;font-family:monospace}
+.url-input:focus{outline:none;border-color:var(--accent)}
+.btn{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;
+  font-weight:600;transition:.15s;white-space:nowrap}
+.btn-blue{background:var(--accent);color:#fff}
+.btn-blue:hover{background:#1a6da0}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#157a3a}
+.btn-green:disabled{background:#2d4a38;cursor:not-allowed;opacity:.6}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#962d22}
+.btn-red:disabled{background:#4a2220;cursor:not-allowed;opacity:.6}
+.video-meta{font-size:11px;color:var(--muted);margin-top:4px}
+#loadStatus{font-size:12px;color:var(--yellow);min-height:18px}
+
+/* ── Phase 1 strip (inside WorldV2 panel) ── */
+.p1-strip{background:rgba(240,192,64,.06);border-bottom:1px solid var(--border);
+  padding:10px 14px}
+.p1-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+.p1-stat{text-align:center}
+.p1-stat .val{font-size:18px;font-weight:700;color:var(--yellow)}
+.p1-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase}
+.ctx-chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:#1c2d3f;border:1px solid var(--accent);color:var(--accent);
+  padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600}
+.switch-badge{background:#2d1f3d;border:1px solid var(--purple);color:#a78bfa;
+  padding:2px 9px;border-radius:10px;font-size:11px;margin-left:8px}
+
+/* ── Detection grid ── */
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.det-grid{grid-template-columns:1fr}}
+.det-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.det-panel.world{border-color:var(--accent)}
+.det-panel.base{border-color:var(--orange)}
+.det-header{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border)}
+.det-panel.world .det-header{background:rgba(46,134,193,.12)}
+.det-panel.base  .det-header{background:rgba(230,126,34,.12)}
+.det-title{font-weight:700;font-size:13px}
+.det-panel.world .det-title{color:var(--accent)}
+.det-panel.base  .det-title{color:var(--orange)}
+.det-badge{font-size:11px;color:var(--muted)}
+.det-frame-wrap{position:relative;background:#000;min-height:260px;
+  display:flex;align-items:center;justify-content:center}
+.det-frame{width:100%;height:auto;object-fit:contain;display:block}
+.det-frame-placeholder{color:var(--muted);font-size:12px;font-style:italic;
+  padding:60px 40px;text-align:center}
+.det-body{padding:10px 14px;border-top:1px solid var(--border)}
+.det-count{font-size:20px;font-weight:700;margin-bottom:6px}
+.det-panel.world .det-count{color:var(--accent)}
+.det-panel.base  .det-count{color:var(--orange)}
+.det-list{display:flex;flex-wrap:wrap;gap:4px}
+.det-item{background:#1a2232;border-radius:4px;padding:2px 7px;font-size:11px;color:var(--text)}
+.det-item span{color:var(--muted)}
+
+/* ── Metrics row ── */
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:800px){.metrics-row{grid-template-columns:repeat(3,1fr)}}
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:7px;
+  padding:10px;text-align:center}
+.metric-val{font-size:20px;font-weight:700;color:var(--accent)}
+.metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.metric-sub{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* ── Video info bar ── */
+.video-info-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;
+  background:var(--panel);border:1px solid var(--border);border-radius:7px;
+  padding:8px 14px;font-size:12px;flex-wrap:wrap}
+.video-info-bar .yt-link{color:var(--accent);text-decoration:none;font-size:11px}
+.video-info-bar .yt-link:hover{text-decoration:underline}
+.hypothesis-pill{background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.3);
+  color:var(--yellow);border-radius:6px;padding:4px 10px;font-size:11px;font-style:italic}
+
+/* ── Research toggle ── */
+.research-toggle{display:flex;align-items:center;gap:8px;margin-left:auto}
+.toggle-label{font-size:12px;color:var(--muted)}
+.toggle-label.active{color:var(--red)}
+.switch{position:relative;display:inline-block;width:38px;height:20px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#333;border-radius:20px;
+  transition:.2s}
+.slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--green)}
+input:checked+.slider:before{transform:translateX(18px)}
+
+/* ── Log ── */
+.log-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;max-height:140px;overflow-y:auto}
+.log-panel h3{font-size:11px;color:var(--muted);text-transform:uppercase;
+  margin-bottom:6px;letter-spacing:.5px}
+.log-entry{font-size:11px;color:var(--muted);font-family:monospace;line-height:1.7}
+.log-entry.info{color:var(--text)}
+.log-entry.switch{color:var(--yellow);font-weight:600}
+.log-entry.error{color:var(--red)}
+
+/* ── Farm suggestions ── */
+.farm-section{background:var(--panel);border:1px solid #2d4a38;border-radius:8px;
+  padding:14px 16px;margin-bottom:16px}
+.farm-section h3{font-size:13px;color:var(--green);margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:.5px}
+.farm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.farm-card{background:#0d1f14;border:1px solid #2d4a38;border-radius:6px;padding:10px 12px}
+.farm-card h4{font-size:12px;color:var(--green);margin-bottom:4px}
+.farm-card p{font-size:11px;color:var(--muted);line-height:1.6}
+.farm-card .search-q{font-family:monospace;background:#0a1a10;border:1px solid #2d4a38;
+  padding:4px 8px;border-radius:4px;font-size:11px;color:#6ee7b7;margin-top:6px;display:block}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">PENS-KAIT 2026 · Research Demo</span>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/research">Research</a>
+    <a href="/research-log">Log</a>
+    <a href="/research-demo" style="color:var(--accent);border:1px solid var(--accent)">Demo</a>
+  </div>
+  <div class="research-toggle">
+    <span class="toggle-label" id="researchToggleLabel">Research Inference: OFF</span>
+    <label class="switch" title="Enable/disable the live dual-model research inference to reduce CPU load during demo">
+      <input type="checkbox" id="researchToggle" onchange="setResearchActive(this.checked)">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── Study Case Presets ─────────────────────────────────── -->
+  <div class="presets-bar">
+    <span style="color:var(--muted);font-size:12px">Study Case:</span>
+    <button class="preset-btn" onclick="loadPreset('road')">🚗 Road / Street</button>
+    <button class="preset-btn" onclick="loadPreset('farm')">🌿 Indoor Farming</button>
+    <button class="preset-btn" onclick="loadPreset('airport')">✈️ Airport Terminal</button>
+    <button class="preset-btn active" onclick="loadPreset('custom')">🔗 Custom URL</button>
+  </div>
+
+  <!-- ── URL Input ──────────────────────────────────────────── -->
+  <div class="url-bar">
+    <div style="flex:1">
+      <input id="urlInput" class="url-input" type="text"
+        placeholder="Paste YouTube URL — e.g. https://www.youtube.com/watch?v=..."
+        value="https://www.youtube.com/watch?v=eyu0d1x5TMs"/>
+      <div class="video-meta" id="videoMeta"></div>
+      <div id="loadStatus"></div>
+    </div>
+    <button class="btn btn-blue" id="btnLoad" onclick="loadVideo()">Load Video</button>
+    <button class="btn btn-green" id="btnStart" onclick="startDemo()" disabled>▶ Start</button>
+    <button class="btn btn-red"   id="btnStop"  onclick="stopDemo()"  disabled>■ Stop</button>
+  </div>
+
+  <!-- ── Video info bar ──────────────────────────────────────── -->
+  <div class="video-info-bar" id="videoInfoBar" style="display:none">
+    <span id="videoInfoTitle" style="font-weight:600;color:var(--text)"></span>
+    <a id="videoInfoLink" class="yt-link" href="#" target="_blank" rel="noopener">▶ Watch on YouTube</a>
+    <span class="hypothesis-pill" id="videoInfoHyp"></span>
+  </div>
+
+  <!-- ── Detection Panels ──────────────────────────────────── -->
+  <div class="det-grid">
+    <!-- WorldV2 -->
+    <div class="det-panel world">
+      <div class="det-header">
+        <span class="det-title">Phase 2A — YOLOv8s-WorldV2</span>
+        <span class="det-badge">Context-Adaptive · Dynamic CLIP Classes</span>
+      </div>
+      <!-- Phase 1 info embedded in WorldV2 panel -->
+      <div class="p1-strip">
+        <div style="font-size:10px;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
+          Phase 1 — Scene Recognition (GoogLeNet / Places365)
+        </div>
+        <div class="p1-row">
+          <div class="p1-stat">
+            <div class="val" id="p1Scene">—</div>
+            <div class="lbl">Scene</div>
+          </div>
+          <div class="p1-stat">
+            <div class="val" id="p1Conf" style="color:#f0c040">—%</div>
+            <div class="lbl">Confidence</div>
+          </div>
+          <div class="p1-stat">
+            <div class="val" id="p1ClassCount" style="color:#1a8a45">—</div>
+            <div class="lbl">Context Classes</div>
+          </div>
+          <div class="p1-stat">
+            <div class="val" id="p1Reduction" style="color:#a78bfa">—%</div>
+            <div class="lbl">Vocab Reduction</div>
+          </div>
+          <span id="p1SwitchInfo"></span>
+        </div>
+        <div class="ctx-chips" id="ctxChips">
+          <span style="color:var(--muted);font-style:italic;font-size:11px">Waiting for first frame…</span>
+        </div>
+      </div>
+      <div class="det-frame-wrap">
+        <img id="worldFrame" class="det-frame" style="display:none" alt="WorldV2 output"/>
+        <div id="worldPlaceholder" class="det-frame-placeholder">
+          WorldV2 annotated frames will appear here<br>
+          <span style="font-size:10px">(processing road scene → car, motorcycle, person only)</span>
+        </div>
+      </div>
+      <div class="det-body">
+        <div class="det-count" id="worldCount">0 detections</div>
+        <div class="det-list" id="worldList">
+          <span style="color:var(--muted);font-style:italic">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Base -->
+    <div class="det-panel base">
+      <div class="det-header">
+        <span class="det-title">Phase 2B — YOLOv8s Base</span>
+        <span class="det-badge">Fixed COCO-80 · Always 80 Classes</span>
+      </div>
+      <div class="det-frame-wrap">
+        <img id="baseFrame" class="det-frame" style="display:none" alt="Base output"/>
+        <div id="basePlaceholder" class="det-frame-placeholder">
+          YOLOBase annotated frames will appear here<br>
+          <span style="font-size:10px">(scores all 80 COCO classes every frame)</span>
+        </div>
+      </div>
+      <div class="det-body">
+        <div class="det-count" id="baseCount" style="color:var(--orange)">0 detections</div>
+        <div class="det-list" id="baseList">
+          <span style="color:var(--muted);font-style:italic">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Live Metrics ──────────────────────────────────────── -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-val" id="mWorldDet">0</div>
+      <div class="metric-lbl">WorldV2 Det</div>
+      <div class="metric-sub">current frame</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:var(--orange)" id="mBaseDet">0</div>
+      <div class="metric-lbl">Base Det</div>
+      <div class="metric-sub">current frame</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:#1a8a45" id="mVocab">—</div>
+      <div class="metric-lbl">Context Classes</div>
+      <div class="metric-sub">vs 80 (base)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:#a78bfa" id="mSwitchMs">—</div>
+      <div class="metric-lbl">Last Switch</div>
+      <div class="metric-sub">CLIP set_classes ms</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" id="mFrameIdx">—</div>
+      <div class="metric-lbl">Frame Index</div>
+      <div class="metric-sub">video source</div>
+    </div>
+  </div>
+
+  <!-- ── Indoor Farming Suggestions ─────────────────────────── -->
+  <div class="farm-section" id="farmSection" style="display:none">
+    <h3>Indoor Farming Study Case — Suggested Videos</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+      The backend cannot search YouTube directly. Use these search queries to find suitable footage.
+      Paste the URL into the field above and click Load.
+    </p>
+    <div class="farm-grid">
+      <div class="farm-card">
+        <h4>Vertical Farm Tour</h4>
+        <p>Camera walkthrough of a vertical indoor farm with LED grow lights, plant shelves, and hydroponic trays. Look for AeroFarms, Bowery Farming, or Plenty tours.</p>
+        <code class="search-q">YouTube: "indoor vertical farm tour walkthrough"</code>
+      </div>
+      <div class="farm-card">
+        <h4>Hydroponic Greenhouse</h4>
+        <p>Camera moving through rows of hydroponic plant channels. Shows grow lights, nutrient pipes, sensors. Visible YOLO classes: person, potted plant, bottle, clock.</p>
+        <code class="search-q">YouTube: "hydroponic greenhouse inside tour"</code>
+      </div>
+      <div class="farm-card">
+        <h4>Japan Plant Factory</h4>
+        <p>Japanese plant factory tours often show dense LED-lit shelves with leafy greens. Phase 1 may recognize as "greenhouse" or "laboratory" — interesting edge case.</p>
+        <code class="search-q">YouTube: "Japan plant factory indoor farming"</code>
+      </div>
+      <div class="farm-card">
+        <h4>AgriForce / Freight Farms</h4>
+        <p>Container farms or modular indoor growing systems. Compact environment with monitoring screens, control panels. May trigger "server_room" or "laboratory" scene recognition.</p>
+        <code class="search-q">YouTube: "freight farm container grow inside tour"</code>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+      <strong style="color:var(--text)">Expected hypothesis:</strong>
+      Places365 GoogLeNet may not have a specific "indoor farm" category.
+      Phase 1 will likely classify as <em>greenhouse</em>, <em>vegetable_garden</em>, <em>botanical_garden</em>, or <em>laboratory</em>.
+      WorldV2 context classes will adapt accordingly — revealing how the framework handles
+      environments not well-represented in the Places365 training set.
+      This is a valuable negative/edge-case result.
+    </div>
+  </div>
+
+  <!-- ── Log ──────────────────────────────────────────────── -->
+  <div class="log-panel">
+    <h3>Event Log</h3>
+    <div id="logEntries">
+      <div class="log-entry">Ready — load a YouTube video to begin.</div>
+    </div>
+  </div>
+
+</div><!-- .main -->
+
+<script>
+const socket = io({ transports: ['websocket'] });
+let _streamUrl    = null;
+let _currentYtUrl = null;
+let _running      = false;
+let _totalWorldDet = 0;
+let _totalBaseDet  = 0;
+let _frameCount    = 0;
+
+// ── Study case presets ─────────────────────────────────────────────
+const PRESETS = {
+  road:    { url: 'https://www.youtube.com/watch?v=eyu0d1x5TMs',
+             hyp: 'Hypothesis: ~8 context classes (car, person, bus…) vs 80 base — 90% vocab reduction',
+             farm: false },
+  farm:    { url: '',
+             hyp: 'Hypothesis: Phase 1 OOD — expect greenhouse/laboratory misclassification',
+             farm: true },
+  airport: { url: 'https://www.youtube.com/watch?v=lfR1vBQSXFU',
+             hyp: 'Hypothesis: airport_terminal scene → person, suitcase, backpack context',
+             farm: false },
+  custom:  { url: '', hyp: '', farm: false },
+};
+
+function loadPreset(key) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const p = PRESETS[key];
+  if (p.url) document.getElementById('urlInput').value = p.url;
+  document.getElementById('farmSection').style.display = p.farm ? 'block' : 'none';
+  document.getElementById('videoMeta').textContent = '';
+  document.getElementById('loadStatus').textContent = '';
+  document.getElementById('videoInfoBar').style.display = 'none';
+  document.getElementById('videoInfoHyp').textContent = p.hyp || '';
+  _streamUrl = null;
+  _currentYtUrl = p.url || null;
+  document.getElementById('btnStart').disabled = true;
+  if (!p.url) {
+    document.getElementById('urlInput').value = '';
+    document.getElementById('urlInput').focus();
+  }
+}
+
+// ── Video loading ──────────────────────────────────────────────────
+function loadVideo() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { setStatus('Please enter a YouTube URL', 'error'); return; }
+  setStatus('Fetching video info from server…', 'info');
+  document.getElementById('btnLoad').disabled  = true;
+  document.getElementById('btnStart').disabled = true;
+  _streamUrl = null;
+  _currentYtUrl = url;
+  socket.emit('demo_load', { url });
+}
+
+function startDemo() {
+  if (!_streamUrl) { setStatus('Load a video first', 'error'); return; }
+  _running        = true;
+  _totalWorldDet  = 0;
+  _totalBaseDet   = 0;
+  _frameCount     = 0;
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled  = false;
+  resetDisplays();
+  log('Demo started', 'info');
+  socket.emit('demo_start', { stream_url: _streamUrl });
+}
+
+function stopDemo() {
+  _running = false;
+  socket.emit('demo_stop');
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled  = true;
+  log('Demo stopped by user', 'info');
+}
+
+function resetDisplays() {
+  document.getElementById('worldFrame').style.display = 'none';
+  document.getElementById('worldPlaceholder').style.display = 'block';
+  document.getElementById('baseFrame').style.display  = 'none';
+  document.getElementById('basePlaceholder').style.display  = 'block';
+  document.getElementById('worldList').innerHTML = '<span style="color:var(--muted);font-style:italic">—</span>';
+  document.getElementById('baseList').innerHTML  = '<span style="color:var(--muted);font-style:italic">—</span>';
+  document.getElementById('worldCount').textContent = '0 detections';
+  document.getElementById('baseCount').textContent  = '0 detections';
+}
+
+// ── Socket.IO handlers ─────────────────────────────────────────────
+socket.on('demo_load_result', function(d) {
+  document.getElementById('btnLoad').disabled = false;
+  if (d.ok && d.stream_url) {
+    _streamUrl = d.stream_url;
+    const dur  = d.duration ? ` · ${Math.floor(d.duration/60)}m ${d.duration%60|0}s` : '';
+    document.getElementById('videoMeta').textContent = `✓ ${d.title}${dur}`;
+    document.getElementById('loadStatus').textContent = '';
+    document.getElementById('btnStart').disabled = false;
+    // Show video info bar with YouTube link
+    document.getElementById('videoInfoTitle').textContent = d.title || 'Video loaded';
+    document.getElementById('videoInfoLink').href = _currentYtUrl || '#';
+    const bar = document.getElementById('videoInfoBar');
+    bar.style.display = 'flex';
+    log(`Video loaded: ${d.title}`, 'info');
+  } else if (d.status) {
+    setStatus(d.status, 'info');
+  } else {
+    setStatus(`Error: ${d.error}`, 'error');
+    log(`Load error: ${d.error}`, 'error');
+  }
+});
+
+socket.on('demo_status', function(d) {
+  setStatus(d.msg, 'info');
+  log(d.msg, 'info');
+});
+
+socket.on('demo_error', function(d) {
+  setStatus(d.msg, 'error');
+  log(d.msg, 'error');
+  _running = false;
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled  = true;
+});
+
+socket.on('demo_ended', function() {
+  _running = false;
+  setStatus('Video ended', 'info');
+  log('Video processing ended', 'info');
+  document.getElementById('btnStart').disabled = (_streamUrl === null);
+  document.getElementById('btnStop').disabled  = true;
+});
+
+socket.on('demo_frame', function(d) {
+  _frameCount++;
+
+  // ── Phase 1 ──
+  if (d.scene) {
+    document.getElementById('p1Scene').textContent    = d.scene;
+    document.getElementById('p1Conf').textContent     = d.scene_conf + '%';
+    const n = (d.ctx_classes || []).length;
+    document.getElementById('p1ClassCount').textContent = n;
+    document.getElementById('p1Reduction').textContent  = Math.round((1 - n/80)*100) + '%';
+    document.getElementById('mVocab').textContent        = n + ' / 80';
+
+    // Render chips
+    const chips = document.getElementById('ctxChips');
+    chips.innerHTML = (d.ctx_classes || []).map(c =>
+      `<span class="chip">${c}</span>`).join('');
+
+    // Context switch info
+    if (d.world_switch_ms !== null && d.world_switch_ms !== undefined) {
+      document.getElementById('p1SwitchInfo').innerHTML =
+        `<span class="switch-badge">Context switch: ${d.world_switch_ms} ms (CLIP set_classes)</span>`;
+      log(`Context switched to "${d.scene}" — CLIP set_classes: ${d.world_switch_ms} ms`, 'switch');
+    }
+  }
+
+  // ── Frames ──
+  if (d.world_frame) {
+    const img = document.getElementById('worldFrame');
+    img.src = 'data:image/jpeg;base64,' + d.world_frame;
+    img.style.display = 'block';
+    document.getElementById('worldPlaceholder').style.display = 'none';
+  }
+  if (d.base_frame) {
+    const img = document.getElementById('baseFrame');
+    img.src = 'data:image/jpeg;base64,' + d.base_frame;
+    img.style.display = 'block';
+    document.getElementById('basePlaceholder').style.display = 'none';
+  }
+
+  // ── Detections ──
+  const wd = d.world_dets || [];
+  const bd = d.base_dets  || [];
+  _totalWorldDet += wd.length;
+  _totalBaseDet  += bd.length;
+
+  document.getElementById('worldCount').textContent = `${wd.length} detection${wd.length!==1?'s':''}`;
+  document.getElementById('baseCount').textContent  = `${bd.length} detection${bd.length!==1?'s':''}`;
+  document.getElementById('mWorldDet').textContent  = wd.length;
+  document.getElementById('mBaseDet').textContent   = bd.length;
+  document.getElementById('mFrameIdx').textContent  = d.frame_idx || '—';
+
+  // Render detection lists
+  function renderDets(dets, elId) {
+    const el = document.getElementById(elId);
+    if (!dets || !dets.length) {
+      el.innerHTML = '<span style="color:var(--muted);font-style:italic">None</span>';
+      return;
+    }
+    const cnt = {};
+    dets.forEach(d => { cnt[d.class] = (cnt[d.class]||0)+1; });
+    el.innerHTML = Object.entries(cnt)
+      .sort((a,b) => b[1]-a[1])
+      .map(([cls,n]) => `<span class="det-item">${cls}${n>1?`<span> ×${n}</span>`:''}</span>`)
+      .join('');
+  }
+  renderDets(wd, 'worldList');
+  renderDets(bd, 'baseList');
+
+  // Switch badge
+  if (d.world_switch_ms !== null && d.world_switch_ms !== undefined) {
+    document.getElementById('mSwitchMs').textContent = d.world_switch_ms + ' ms';
+  }
+});
+
+// ── Helpers ───────────────────────────────────────────────────────
+function setStatus(msg, type) {
+  const el = document.getElementById('loadStatus');
+  el.textContent = msg;
+  el.style.color = type === 'error' ? 'var(--red)' : type === 'info' ? 'var(--yellow)' : 'var(--muted)';
+}
+
+function log(msg, type) {
+  const el   = document.getElementById('logEntries');
+  const ts   = new Date().toLocaleTimeString('en-GB', {hour12:false});
+  const div  = document.createElement('div');
+  div.className = 'log-entry ' + (type || '');
+  div.textContent = `[${ts}] ${msg}`;
+  el.appendChild(div);
+  el.parentElement.scrollTop = el.parentElement.scrollHeight;
+}
+
+// ── Research inference toggle ──────────────────────────────────────
+function setResearchActive(enabled) {
+  socket.emit('set_research_active', { enabled });
+  const lbl = document.getElementById('researchToggleLabel');
+  lbl.textContent = 'Research Inference: ' + (enabled ? 'ON' : 'OFF');
+  lbl.className   = 'toggle-label' + (enabled ? ' active' : '');
+  log('Research inference ' + (enabled ? 'enabled' : 'disabled'), 'info');
+}
+
+socket.on('research_active_state', function(d) {
+  document.getElementById('researchToggle').checked = d.enabled;
+  const lbl = document.getElementById('researchToggleLabel');
+  lbl.textContent = 'Research Inference: ' + (d.enabled ? 'ON' : 'OFF');
+  lbl.className   = 'toggle-label' + (d.enabled ? ' active' : '');
+});
+
+// Init
+socket.on('connect', () => {
+  log('Connected to backend', 'info');
+  // Auto-disable research inference when demo page loads
+  socket.emit('set_research_active', { enabled: false });
+});
+socket.on('disconnect', () => log('Disconnected', 'error'));
+</script>
+</body>
+</html>

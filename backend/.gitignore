@@ -87,4 +87,17 @@ dmypy.json
 *.prototxt
 *.tflite
 
+# NCNN model files
+*.ncnn.bin
+*.ncnn.param
+
+# TensorFlow SavedModel files
+*.pb
+*.index
+variables/
+
+# Model directories
+*_ncnn_model/
+*_saved_model/
+
 *.db

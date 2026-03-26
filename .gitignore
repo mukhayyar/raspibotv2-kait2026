@@ -1,0 +1,15 @@
+# --- Datasets & Large Data ---
+notebooks/datasets/
+notebooks/.ipynb_checkpoints/
+
+# --- Output / Generated Files ---
+output.png
+output*.png
+docs/final_evaluation_report*.html
+
+# --- Duplicate Model Directories ---
+backend/Phase2/
+
+# --- OS ---
+.DS_Store
+Thumbs.db

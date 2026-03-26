@@ -97,7 +97,7 @@ DEFAULT_CLASSES = ["person", "car", "clock", "bottle", "chair", "book", "cell ph
 #   imgsz=256  ~240 ms  (4.2 FPS)
 #   imgsz=192  ~180 ms  (5.6 FPS)
 #   imgsz=160  ~125 ms  (8.0 FPS)  ← ~30% faster than 192, minor accuracy tradeoff
-_INFER_IMGSZ = 320
+_INFER_IMGSZ = 224
 # ──────────────────────────────────────────────────────────────────────────────
 
 YOLO_AVAILABLE = False
@@ -2355,6 +2355,15 @@ def on_leave_research():
         })
 
 
+@socketio.on('set_research_active')
+def on_set_research_active(data):
+    global research_active
+    enabled = bool(data.get('enabled', False))
+    research_active = enabled
+    print(f"[WS] research_active set to {enabled} by demo page")
+    emit('research_active_state', {'enabled': enabled})
+
+
 # ─── Startup Logic ────────────────────────────────────────────────────────────
 def start_background_tasks():
     print("=" * 50)
@@ -2387,6 +2396,268 @@ def on_start_logging():
 def on_stop_logging():
     perf_logger.stop()
     emit('system_stats', {'logging': False})
+
+
+# ─── Research Demo: YouTube Video Study Case ──────────────────────────────────
+import base64 as _base64
+
+_demo_threads    = {}   # sid → Thread
+_demo_stop_evs   = {}   # sid → Event
+_demo_world_mdl  = None
+_demo_base_mdl   = None
+_demo_mdl_lock   = threading.Lock()
+
+def _load_demo_models():
+    global _demo_world_mdl, _demo_base_mdl
+    with _demo_mdl_lock:
+        if _demo_world_mdl is None and YOLO_AVAILABLE:
+            try:
+                p = os.path.join(os.path.dirname(__file__), 'models', 'Phase2', 'yolov8s-worldv2.pt')
+                if not os.path.exists(p):
+                    p = os.path.join(os.path.dirname(__file__), 'models', 'yolov8s-worldv2.pt')
+                _demo_world_mdl = YOLO(p)
+                print('[Demo] WorldV2 loaded for demo')
+            except Exception as e:
+                print(f'[Demo] WorldV2 load error: {e}')
+        if _demo_base_mdl is None and YOLO_AVAILABLE:
+            try:
+                p = os.path.join(os.path.dirname(__file__), 'models', 'yolov8s.pt')
+                _demo_base_mdl = YOLO(p)
+                print('[Demo] Base model loaded for demo')
+            except Exception as e:
+                print(f'[Demo] Base model load error: {e}')
+
+
+def _yt_stream_url(youtube_url):
+    """Return (stream_url, title, duration_s) via yt-dlp; stream_url=None on error."""
+    try:
+        import yt_dlp
+        # Prefer H.264 (avc1) ≤480p — explicitly exclude AV1 (av01) and VP9
+        # which the Pi's FFmpeg/OpenCV cannot decode in real time.
+        fmt = (
+            'bestvideo[vcodec^=avc1][height<=480]'
+            '/bestvideo[vcodec^=avc][height<=480]'
+            '/bestvideo[ext=mp4][height<=480][vcodec!=av01][vcodec!=vp9]'
+            '/bestvideo[height<=480][vcodec!=av01][vcodec!=vp9]'
+            '/best[height<=480][vcodec!=av01]'
+            '/best'
+        )
+        opts = {
+            'format': fmt,
+            'quiet': True, 'no_warnings': True, 'socket_timeout': 20,
+        }
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(youtube_url, download=False)
+            url  = info.get('url') or info['formats'][-1]['url']
+            vcodec = info.get('vcodec', 'unknown')
+            print(f'[Demo] Stream selected — codec: {vcodec}, height: {info.get("height")}')
+            return url, info.get('title', 'Unknown'), info.get('duration', 0)
+    except Exception as e:
+        return None, str(e), 0
+
+
+def _demo_thread(sid, stream_url, stop_ev):
+    # Load demo models if needed (blocking, runs inside this thread)
+    if _demo_world_mdl is None or _demo_base_mdl is None:
+        socketio.emit('demo_status', {'msg': 'Loading YOLO models for demo…'}, to=sid)
+        _load_demo_models()
+
+    if not CV2_AVAILABLE:
+        socketio.emit('demo_error', {'msg': 'OpenCV not available on backend'}, to=sid)
+        return
+
+    cap = cv2.VideoCapture(stream_url)
+    if not cap.isOpened():
+        socketio.emit('demo_error', {'msg': 'Could not open video stream — URL may have expired, try reloading.'}, to=sid)
+        return
+
+    fps_src   = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    # Target 3 processed frames/sec — Pi 5 CPU inference takes ~300-600ms/model
+    skip      = max(1, int(fps_src / 3))
+
+    p1_scene       = 'unknown'
+    p1_conf        = 0.0
+    p1_ctx_classes = ['person', 'car', 'truck', 'motorcycle', 'bus', 'bicycle', 'traffic light', 'stop sign']
+    p1_candidate   = None
+    p1_cnt         = 0
+    P1_EVERY       = 25   # run Phase1 every N processed frames
+    P1_DEBOUNCE    = 2
+
+    world_loaded_classes = None
+    proc_frame = 0
+    fidx       = 0
+
+    # Pre-import for parallel inference
+    from concurrent.futures import ThreadPoolExecutor
+    _demo_executor = ThreadPoolExecutor(max_workers=2)
+
+    def _infer_world(frm, ctx_classes, loaded_cls):
+        """Run WorldV2 in a thread. Returns (ann_frame, dets, switch_ms)."""
+        w_frame = frm.copy()
+        w_dets  = []
+        w_sw_ms = None
+        if _demo_world_mdl is None:
+            return w_frame, w_dets, w_sw_ms
+        try:
+            if loaded_cls != ctx_classes:
+                t0 = time.time()
+                _demo_world_mdl.set_classes(ctx_classes)
+                w_sw_ms = round((time.time() - t0) * 1000, 1)
+            res = _demo_world_mdl.predict(frm, imgsz=256, conf=0.25, verbose=False)
+            if res and res[0].boxes is not None:
+                for box in res[0].boxes:
+                    cid  = int(box.cls.item())
+                    conf = round(float(box.conf.item()), 3)
+                    cn   = ctx_classes[cid] if cid < len(ctx_classes) else str(cid)
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    col  = _class_color(hash(cn) % 80)
+                    cv2.rectangle(w_frame, (x1, y1), (x2, y2), col, 2)
+                    cv2.putText(w_frame, f'{cn} {conf:.2f}', (x1, max(y1-5, 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
+                    w_dets.append({'class': cn, 'conf': conf})
+        except Exception as _e:
+            print(f'[Demo] WorldV2 error: {_e}')
+        return w_frame, w_dets, w_sw_ms
+
+    def _infer_base(frm):
+        """Run YOLOBase in a thread. Returns (ann_frame, dets)."""
+        b_frame = frm.copy()
+        b_dets  = []
+        if _demo_base_mdl is None:
+            return b_frame, b_dets
+        try:
+            res = _demo_base_mdl.predict(frm, imgsz=256, conf=0.25, verbose=False)
+            if res and res[0].boxes is not None:
+                for box in res[0].boxes:
+                    cid  = int(box.cls.item())
+                    conf = round(float(box.conf.item()), 3)
+                    cn   = _demo_base_mdl.names.get(cid, str(cid))
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    col  = _class_color(hash(cn) % 80)
+                    cv2.rectangle(b_frame, (x1, y1), (x2, y2), col, 2)
+                    cv2.putText(b_frame, f'{cn} {conf:.2f}', (x1, max(y1-5, 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
+                    b_dets.append({'class': cn, 'conf': conf})
+        except Exception as _e:
+            print(f'[Demo] Base error: {_e}')
+        return b_frame, b_dets
+
+    while not stop_ev.is_set():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        fidx += 1
+        if fidx % skip != 0:
+            continue
+        proc_frame += 1
+
+        # Resize for processing — 480px wide is plenty for 256 imgsz inference
+        h, w = frame.shape[:2]
+        if w > 480:
+            frame = cv2.resize(frame, (480, int(h * 480 / w)))
+
+        # ── Phase 1 ─────────────────────────────────────────────────────
+        if proc_frame % P1_EVERY == 1 and phase1_model is not None:
+            try:
+                preds = phase1_model.predict(frame)
+                if preds:
+                    # Phase1Model returns {'label': '/a/street', 'score': 0.72}
+                    raw_label = preds[0].get('label', '')
+                    sc = raw_label.split('/')[-1]   # '/a/street' → 'street'
+                    cf = float(preds[0].get('score', 0.0))
+                    if sc == p1_candidate:
+                        p1_cnt += 1
+                    else:
+                        p1_candidate, p1_cnt = sc, 1
+                    if p1_cnt >= P1_DEBOUNCE:
+                        p1_conf = cf   # always update confidence
+                        if sc != p1_scene:
+                            p1_scene = sc
+                            ctx = context_mgr.get_context_for_scene(sc)
+                            if ctx and ctx.get('classes'):
+                                p1_ctx_classes = ctx['classes']
+                        p1_cnt = 0
+            except Exception as _e:
+                print(f'[Demo] Phase1 error: {_e}')
+
+        # ── Phase 2A + 2B: run both models IN PARALLEL ───────────────────
+        fut_w = _demo_executor.submit(_infer_world, frame, list(p1_ctx_classes), world_loaded_classes)
+        fut_b = _demo_executor.submit(_infer_base,  frame)
+        w_frame, w_dets, w_switch_ms = fut_w.result()
+        b_frame, b_dets              = fut_b.result()
+
+        # Track which classes WorldV2 currently has loaded
+        if w_switch_ms is not None:
+            world_loaded_classes = list(p1_ctx_classes)
+
+        # Encode both frames
+        _, wj = cv2.imencode('.jpg', w_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        _, bj = cv2.imencode('.jpg', b_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        socketio.emit('demo_frame', {
+            'world_frame':     _base64.b64encode(wj.tobytes()).decode(),
+            'base_frame':      _base64.b64encode(bj.tobytes()).decode(),
+            'scene':           p1_scene,
+            'scene_conf':      round(p1_conf * 100, 1),
+            'ctx_classes':     p1_ctx_classes,
+            'world_dets':      w_dets,
+            'base_dets':       b_dets,
+            'frame_idx':       fidx,
+            'proc_frame':      proc_frame,
+            'world_switch_ms': w_switch_ms,
+        }, to=sid)
+
+    cap.release()
+    _demo_executor.shutdown(wait=False)
+    socketio.emit('demo_ended', {}, to=sid)
+
+
+@app.route('/research-demo')
+def research_demo_page():
+    return render_template('research_demo.html')
+
+
+@socketio.on('demo_load')
+def on_demo_load(data):
+    url = (data.get('url') or '').strip()
+    if not url:
+        emit('demo_load_result', {'ok': False, 'error': 'No URL provided'})
+        return
+    sid = request.sid
+    emit('demo_load_result', {'ok': True, 'status': 'Fetching video info…'})
+    def _fetch():
+        su, title, dur = _yt_stream_url(url)
+        if su:
+            socketio.emit('demo_load_result', {'ok': True, 'stream_url': su,
+                                                'title': title, 'duration': dur}, to=sid)
+        else:
+            socketio.emit('demo_load_result', {'ok': False, 'error': title}, to=sid)
+    threading.Thread(target=_fetch, daemon=True).start()
+
+
+@socketio.on('demo_start')
+def on_demo_start(data):
+    sid = request.sid
+    su  = (data.get('stream_url') or '').strip()
+    if not su:
+        emit('demo_error', {'msg': 'No stream URL — load a video first'})
+        return
+    if sid in _demo_stop_evs:
+        _demo_stop_evs[sid].set()
+    ev = threading.Event()
+    _demo_stop_evs[sid] = ev
+    t = threading.Thread(target=_demo_thread, args=(sid, su, ev), daemon=True)
+    _demo_threads[sid] = t
+    t.start()
+    emit('demo_status', {'msg': 'Starting…'})
+
+
+@socketio.on('demo_stop')
+def on_demo_stop():
+    sid = request.sid
+    if sid in _demo_stop_evs:
+        _demo_stop_evs[sid].set()
+    emit('demo_status', {'msg': 'Stopped'})
+
 
 if __name__ == '__main__':
     print("  Open http://<YOUR_IP>:5000 in a browser")
